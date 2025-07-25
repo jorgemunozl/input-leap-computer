@@ -189,8 +189,15 @@ remove_existing_installation() {
 
 # GNOME-specific setup for laptops
 setup_gnome_laptop() {
-    if [[ "$DESKTOP_ENV" == "GNOME" ]] && [[ "$IS_LAPTOP" == true ]]; then
+    # Check for GNOME components even if not the primary desktop environment
+    local has_gnome_components=false
+    if [[ "$DESKTOP_ENV" == "GNOME" ]] || command -v gsettings &> /dev/null; then
+        has_gnome_components=true
+    fi
+    
+    if [[ "$has_gnome_components" == true ]] && [[ "$IS_LAPTOP" == true ]]; then
         log_info "Configuring GNOME laptop-specific settings..."
+        log_info "Detected GNOME components available (Desktop: $DESKTOP_ENV)"
         
         # Disable GNOME's built-in screen sharing that might conflict
         if command -v gsettings &> /dev/null; then

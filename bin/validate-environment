@@ -1,0 +1,120 @@
+#!/bin/bash
+
+# Pre-Test Environment Validator for Input Leap Setup
+# Run this before testing on Openbox + GNOME laptop
+
+set -euo pipefail
+
+# Colors
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m'
+
+echo -e "${BLUE}🔍 Input Leap Environment Validator${NC}"
+echo "=================================="
+
+# Test 1: System Detection
+echo -e "\n${YELLOW}1. System Environment:${NC}"
+echo "   Desktop Environment: ${XDG_CURRENT_DESKTOP:-Not set}"
+echo "   Desktop Session: ${DESKTOP_SESSION:-Not set}"
+echo "   Session Type: ${XDG_SESSION_TYPE:-Not set}"
+echo "   Display: ${DISPLAY:-Not set}"
+
+# Test 2: Laptop Detection
+echo -e "\n${YELLOW}2. Hardware Detection:${NC}"
+if [[ -d "/proc/acpi/battery" ]] || [[ -n "$(ls /sys/class/power_supply/BAT* 2>/dev/null)" ]]; then
+    echo -e "   ${GREEN}✓${NC} Laptop detected (battery found)"
+else
+    echo -e "   ${RED}✗${NC} Desktop system (no battery)"
+fi
+
+# Test 3: Arch Linux Detection
+echo -e "\n${YELLOW}3. Distribution:${NC}"
+if [[ -f "/etc/arch-release" ]] || command -v pacman &> /dev/null; then
+    echo -e "   ${GREEN}✓${NC} Arch Linux detected"
+else
+    echo -e "   ${RED}✗${NC} Non-Arch system"
+fi
+
+# Test 4: Input Leap Installation
+echo -e "\n${YELLOW}4. Input Leap:${NC}"
+if command -v input-leap-client &> /dev/null; then
+    echo -e "   ${GREEN}✓${NC} Input Leap client found: $(which input-leap-client)"
+    echo "   Version: $(input-leap-client --version 2>/dev/null || echo 'Unknown')"
+    
+    # Check installation method
+    if pacman -Qi input-leap &> /dev/null; then
+        echo "   Installation: Official repository"
+    elif pacman -Qi input-leap-git &> /dev/null; then
+        echo "   Installation: AUR (input-leap-git)"
+    else
+        echo "   Installation: Unknown method"
+    fi
+else
+    echo -e "   ${RED}✗${NC} Input Leap client not found"
+fi
+
+# Test 5: GNOME Components
+echo -e "\n${YELLOW}5. GNOME Components:${NC}"
+if command -v gsettings &> /dev/null; then
+    echo -e "   ${GREEN}✓${NC} gsettings available (GNOME settings)"
+else
+    echo -e "   ${YELLOW}!${NC} gsettings not available (GNOME optimizations limited)"
+fi
+
+if command -v notify-send &> /dev/null; then
+    echo -e "   ${GREEN}✓${NC} notify-send available (desktop notifications)"
+else
+    echo -e "   ${YELLOW}!${NC} notify-send not available (no desktop notifications)"
+fi
+
+# Test 6: Network Interface
+echo -e "\n${YELLOW}6. Network Configuration:${NC}"
+echo "   Network interfaces:"
+ip addr show | grep -E "^[0-9]+: " | while read -r line; do
+    interface=$(echo "$line" | cut -d: -f2 | tr -d ' ')
+    state=$(echo "$line" | grep -o "state [A-Z]*" | cut -d' ' -f2)
+    echo "   - $interface: $state"
+done
+
+# Test 7: Required Directories
+echo -e "\n${YELLOW}7. Directory Structure:${NC}"
+for dir in "$HOME/.config" "$HOME/.cache" "$HOME/.local/bin"; do
+    if [[ -d "$dir" ]]; then
+        echo -e "   ${GREEN}✓${NC} $dir exists"
+    else
+        echo -e "   ${YELLOW}!${NC} $dir missing (will be created)"
+    fi
+done
+
+# Test 8: Systemd User Services
+echo -e "\n${YELLOW}8. Systemd User Support:${NC}"
+if systemctl --user list-units --type=service &>/dev/null; then
+    echo -e "   ${GREEN}✓${NC} Systemd user services available"
+else
+    echo -e "   ${RED}✗${NC} Systemd user services not available"
+fi
+
+# Test 9: Shell Integration
+echo -e "\n${YELLOW}9. Shell Environment:${NC}"
+echo "   Shell: $SHELL"
+if [[ -f "$HOME/.bashrc" ]]; then
+    echo -e "   ${GREEN}✓${NC} .bashrc exists"
+else
+    echo -e "   ${YELLOW}!${NC} .bashrc missing"
+fi
+
+# Summary
+echo -e "\n${BLUE}Summary:${NC}"
+echo "========"
+echo "This environment appears to be:"
+echo "- $(if [[ -n "$(ls /sys/class/power_supply/BAT* 2>/dev/null)" ]]; then echo "Laptop"; else echo "Desktop"; fi) system"
+echo "- Arch Linux with $(if command -v pacman &>/dev/null; then echo "pacman"; else echo "unknown"; fi) package manager"
+echo "- ${XDG_CURRENT_DESKTOP:-Unknown} desktop environment"
+echo "- $(if command -v input-leap-client &>/dev/null; then echo "Input Leap already installed"; else echo "Input Leap needs installation"; fi)"
+echo "- $(if command -v gsettings &>/dev/null; then echo "GNOME components available"; else echo "Limited GNOME support"; fi)"
+
+echo -e "\n${GREEN}✅ Ready for Input Leap setup testing!${NC}"
+echo "Run ./setup.sh to begin the installation process."

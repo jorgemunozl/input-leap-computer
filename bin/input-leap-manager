@@ -23,7 +23,8 @@ mkdir -p "$(dirname "$CONFIG_FILE")" "$(dirname "$LOG_FILE")" "$(dirname "$PID_F
 
 # Detect desktop environment
 detect_desktop() {
-    if [[ "$XDG_CURRENT_DESKTOP" == *"GNOME"* ]] || [[ "$DESKTOP_SESSION" == *"gnome"* ]]; then
+    # Check for GNOME components first (may be available even with different WM)
+    if [[ "$XDG_CURRENT_DESKTOP" == *"GNOME"* ]] || [[ "$DESKTOP_SESSION" == *"gnome"* ]] || command -v gsettings &> /dev/null; then
         echo "GNOME"
     elif [[ "$XDG_CURRENT_DESKTOP" == *"KDE"* ]]; then
         echo "KDE"
@@ -157,11 +158,18 @@ test_connection() {
     
     log_info "Testing connection to $SERVER_HOST:$SERVER_PORT..."
     
+    # First test basic network connectivity
+    if ! ping -c 1 -W 2 "$SERVER_HOST" &>/dev/null; then
+        log_warn "Host $SERVER_HOST is not reachable via ping (but Input Leap might still work)"
+    fi
+    
+    # Test Input Leap port specifically
     if timeout 5 bash -c "</dev/tcp/$SERVER_HOST/$SERVER_PORT" 2>/dev/null; then
-        log_success "Server is reachable"
+        log_success "Server is reachable at $SERVER_HOST:$SERVER_PORT"
         return 0
     else
         log_error "Cannot reach server at $SERVER_HOST:$SERVER_PORT"
+        log_info "Please check: 1) Server is running 2) Port $SERVER_PORT is open 3) Network connectivity"
         return 1
     fi
 }

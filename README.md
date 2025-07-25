@@ -38,6 +38,12 @@ A complete, robust automation system for Input Leap client setup and management.
 
 ## 🚀 Quick Start
 
+### **Pre-Test Validation** (Recommended)
+```bash
+./bin/validate-environment
+```
+This will check your system compatibility and show what features are available.
+
 ### **Arch Linux (Fully Supported)**
 ```bash
 ./setup.sh
@@ -134,6 +140,7 @@ input-leap/
 ├── bin/                        # Executable scripts
 │   ├── input-leap-manager      # Core management script
 │   ├── leap                    # Simple command wrapper
+│   ├── validate-environment    # Pre-test system validator
 │   ├── connect_input_leap.sh   # Legacy script (backup)
 │   ├── install_input_leap.sh   # Legacy script (backup)
 │   └── auto_input_leap.sh      # Legacy script (backup)
@@ -142,7 +149,8 @@ input-leap/
 ├── systemd/                    # Service definitions
 │   └── input-leap.service      # Systemd service template
 ├── docs/                       # Documentation
-│   └── GNOME-LAPTOP-SUPPORT.md # GNOME-specific guide
+│   ├── GNOME-LAPTOP-SUPPORT.md # GNOME-specific guide
+│   └── TESTING-GUIDE.md        # Comprehensive testing guide
 ├── README.md                   # This file
 └── .gitignore                  # Git ignore rules
 ```
