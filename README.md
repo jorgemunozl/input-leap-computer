@@ -29,12 +29,18 @@ A complete, robust automation system for Input Leap client setup and management.
   - 🎯 **Wayland and X11 sessions** - Automatic detection and optimization
   - ⚡ **Xorg services** - Perfect X11 compatibility and backend forcing
 
+- **Ubuntu/Debian** (APT, Snap, Flatpak)
+  - 🐧 **Native Ubuntu GNOME integration** - Full desktop environment support
+  - 🔄 **Unity desktop compatibility** - Legacy Unity desktop support
+  - 📦 **Multiple installation methods** - APT packages, Snap, Flatpak support
+  - 🖥️ **WSL compatibility** - Works in Windows Subsystem for Linux
+  - 🔧 **Ubuntu-specific optimizations** - Tailored for Ubuntu/Debian systems
+
 ### 🚧 **Planned Support**
-- **Ubuntu/Debian** - Coming soon with GNOME optimizations!
 - **Fedora** - Under consideration
 - **Other distributions** - Community contributions welcome
 
-> **Note**: Currently provides enterprise-grade support for Arch Linux with complete GNOME/Xorg integration. Ubuntu support is planned for future releases.
+> **Note**: Now provides enterprise-grade support for both Arch Linux and Ubuntu/Debian with complete GNOME/Xorg integration across all supported distributions.
 
 ## 🚀 Quick Start
 
@@ -49,19 +55,19 @@ This will check your system compatibility and show what features are available.
 ./setup.sh
 ```
 
-### **Ubuntu/Debian (Coming Soon)**
+### **Ubuntu/Debian (Fully Supported)**
 ```bash
-./setup-ubuntu.sh  # Placeholder - shows planned features
+./setup-ubuntu.sh
 ```
 
 ### **Other Distributions**
 Check our [contribution guide](#-contributing) to help add support for your distribution!
 
-That's it! The script will:
-1. **Detect your system** (Arch Linux, GNOME, laptop/desktop)
+That's it! The setup script will:
+1. **Detect your system** (Arch Linux/Ubuntu, GNOME/KDE/Unity, laptop/desktop)
 2. **Check existing installations** (gives options to keep/reinstall/configure)
-3. **Install Input Leap** (from official repos or AUR)
-4. **Configure GNOME optimizations** (complete Xorg integration)
+3. **Install Input Leap** (from repos, AUR, APT, Snap, or Flatpak)
+4. **Configure desktop optimizations** (complete GNOME/Unity/KDE integration)
 5. **Set up server connection** (interactive configuration)
 6. **Enable auto-start** (bashrc + systemd service)
 7. **Test everything works** (connection validation)
@@ -137,7 +143,7 @@ The script automatically uses your hostname as the client name, but you can cust
 ```
 input-leap/
 ├── setup.sh                    # Main setup script for Arch Linux
-├── setup-ubuntu.sh             # Placeholder for Ubuntu support
+├── setup-ubuntu.sh             # Complete setup script for Ubuntu/Debian
 ├── bin/                        # Executable scripts
 │   ├── input-leap-manager      # Core management script
 │   ├── leap                    # Simple command wrapper
