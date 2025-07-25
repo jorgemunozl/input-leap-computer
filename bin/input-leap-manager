@@ -207,17 +207,41 @@ start_client() {
     log_info "Connecting to $SERVER_HOST:$SERVER_PORT as $CLIENT_NAME"
     log_info "Desktop environment: $desktop_env"
     
-    # GNOME/Wayland specific handling
+    # Enhanced GNOME/desktop environment handling
     if [[ "$desktop_env" == "GNOME" ]]; then
-        log_info "Applying GNOME-specific optimizations..."
+        log_info "Applying comprehensive GNOME optimizations..."
         
-        # Ensure we're using X11 for better compatibility
+        # Set GNOME-specific environment variables
         export GDK_BACKEND=x11
+        export GNOME_DESKTOP_SESSION_ID=this-is-deprecated
+        export XDG_CURRENT_DESKTOP=GNOME
+        export DESKTOP_SESSION=gnome
         
         # Set display if not already set
         if [[ -z "$DISPLAY" ]]; then
             export DISPLAY=:0
         fi
+        
+        # Set XDG runtime directory if needed
+        if [[ -z "$XDG_RUNTIME_DIR" ]]; then
+            export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+        fi
+        
+        # Ensure GNOME accessibility bus is available
+        if [[ -z "$AT_SPI_BUS_ADDRESS" ]] && command -v gsettings &>/dev/null; then
+            # Start accessibility bus if not running
+            if ! pgrep -x at-spi-bus-launcher >/dev/null; then
+                /usr/lib/at-spi2-core/at-spi-bus-launcher --launch-immediately &
+                sleep 1
+            fi
+        fi
+        
+        # Notify GNOME about connection attempt
+        if command -v notify-send &>/dev/null; then
+            notify-send -i network-wireless -u low "Input Leap" "Connecting to $SERVER_HOST..." &
+        fi
+        
+        log_success "GNOME environment optimized for Input Leap"
     fi
     
     # Start client in background
@@ -234,9 +258,18 @@ start_client() {
     if ps -p "$pid" > /dev/null 2>&1; then
         log_success "Input Leap client started (PID: $pid)"
         
-        # Optional desktop notification
+        # Enhanced GNOME desktop notification
         if command -v notify-send &> /dev/null; then
-            notify-send "Input Leap" "Connected to $SERVER_HOST" -t 3000 2>/dev/null || true
+            if [[ "$desktop_env" == "GNOME" ]]; then
+                # Use GNOME notification helper if available
+                if [[ -f "$HOME/.config/input-leap/notify-input-leap.sh" ]]; then
+                    "$HOME/.config/input-leap/notify-input-leap.sh" "connected" "$SERVER_HOST" &
+                else
+                    notify-send -i network-wireless -u normal "Input Leap" "✅ Connected to $SERVER_HOST" -t 5000 2>/dev/null || true
+                fi
+            else
+                notify-send "Input Leap" "Connected to $SERVER_HOST" -t 3000 2>/dev/null || true
+            fi
         fi
         
         rm -f "$LOCK_FILE"
@@ -278,9 +311,19 @@ stop_client() {
     rm -f "$PID_FILE"
     log_success "Input Leap client stopped"
     
-    # Optional desktop notification
+    # Enhanced GNOME desktop notification
+    local desktop_env=$(detect_desktop)
     if command -v notify-send &> /dev/null; then
-        notify-send "Input Leap" "Disconnected" -t 3000 2>/dev/null || true
+        if [[ "$desktop_env" == "GNOME" ]]; then
+            # Use GNOME notification helper if available
+            if [[ -f "$HOME/.config/input-leap/notify-input-leap.sh" ]]; then
+                "$HOME/.config/input-leap/notify-input-leap.sh" "disconnected" "server" &
+            else
+                notify-send -i network-offline -u normal "Input Leap" "🔌 Disconnected" -t 3000 2>/dev/null || true
+            fi
+        else
+            notify-send "Input Leap" "Disconnected" -t 3000 2>/dev/null || true
+        fi
     fi
 }
 

@@ -14,7 +14,7 @@ A complete, robust automation system for Input Leap client setup and management.
 - 📱 **Desktop notifications** - Visual feedback for connection status
 - 🎯 **Zero configuration** - Works out of the box after setup
 - 🔒 **Safe installation** - Backup and rollback capabilities
-- 🖥️ **Complete GNOME support** - Full integration with GNOME desktop environments
+- 🖥️ **Enterprise GNOME support** - Complete integration with all GNOME desktop environments
 - 🔋 **Laptop power management** - Smart handling of auto-lock and power settings
 - 📦 **Pre-installation checks** - Detects existing installations safely
 - ⚡ **Xorg optimization** - Perfect compatibility with X11 sessions
@@ -67,27 +67,28 @@ That's it! The script will:
 7. **Test everything works** (connection validation)
 8. **Create convenient commands** (`leap` command)
 
-## 🖥️ **GNOME + Xorg Excellence**
+## 🖥️ **Enterprise GNOME Excellence**
 
-This project provides **enterprise-grade GNOME integration** with complete Xorg optimization:
+This project provides **enterprise-grade GNOME integration** with comprehensive desktop environment support:
 
-### ⚡ **Automatic Xorg Optimization**
-- **Smart backend detection** - Automatically prefers X11 over Wayland
-- **Environment variable configuration** - Sets `GDK_BACKEND=x11` for stability
-- **Display management** - Proper DISPLAY and XDG_RUNTIME_DIR handling
-- **Session type awareness** - Adapts behavior for Wayland vs X11 sessions
+### ⚡ **Complete GNOME Desktop Integration**
+- **Universal GNOME support** - Works with full GNOME, GNOME components, and mixed environments
+- **Smart environment detection** - Automatically detects and optimizes for any GNOME configuration
+- **Advanced power management** - Comprehensive power profile optimization for all system types
+- **Native notification system** - Full GNOME notification center integration with custom icons
 
-### 🔧 **GNOME Services Integration**
-- **Power management** - Intelligent auto-lock and idle timeout handling
-- **Desktop notifications** - Native GNOME notification system integration
-- **Shell extensions** - Compatible with GNOME extensions ecosystem
-- **Settings synchronization** - Backs up and restores GNOME settings safely
+### 🔧 **Advanced GNOME Services Integration**
+- **Shell extension compatibility** - Seamless integration with GNOME Shell extensions ecosystem
+- **Accessibility framework** - Complete assistive technology and accessibility bus support  
+- **Session management** - Intelligent session type detection and X11/Wayland optimization
+- **Keyring integration** - Secure credential management with GNOME Keyring
+- **Settings backup/restore** - Comprehensive backup system with one-click restoration
 
-### 💻 **Laptop-Specific Features**
-- **Battery detection** - Automatically detects laptop vs desktop systems
-- **Power optimization** - Prevents sleep/suspend during remote sessions
-- **Screen lock management** - Optional disabling for uninterrupted remote control
-- **Thermal awareness** - Respects laptop power profiles
+### 💻 **All System Type Support**
+- **Desktop optimization** - Full-featured desktop environment integration
+- **Laptop excellence** - Advanced laptop-specific features (battery, lid, touchpad)
+- **Mixed environment** - Perfect support for Openbox+GNOME, i3+GNOME, etc.
+- **Power profile awareness** - Intelligent adaptation to different power states
 
 ## 🎮 Usage
 
@@ -141,6 +142,7 @@ input-leap/
 │   ├── input-leap-manager      # Core management script
 │   ├── leap                    # Simple command wrapper
 │   ├── validate-environment    # Pre-test system validator
+│   ├── restore-gnome-settings.sh # GNOME settings restoration
 │   ├── connect_input_leap.sh   # Legacy script (backup)
 │   ├── install_input_leap.sh   # Legacy script (backup)
 │   └── auto_input_leap.sh      # Legacy script (backup)

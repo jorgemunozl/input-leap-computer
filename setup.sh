@@ -187,56 +187,303 @@ remove_existing_installation() {
     sudo rm -f /usr/local/bin/input-leap-* 2>/dev/null || true
 }
 
-# GNOME-specific setup for laptops
-setup_gnome_laptop() {
-    # Check for GNOME components even if not the primary desktop environment
+# Enhanced GNOME integration for all systems
+setup_gnome_integration() {
+    # Check for GNOME components availability
     local has_gnome_components=false
     if [[ "$DESKTOP_ENV" == "GNOME" ]] || command -v gsettings &> /dev/null; then
         has_gnome_components=true
     fi
     
-    if [[ "$has_gnome_components" == true ]] && [[ "$IS_LAPTOP" == true ]]; then
-        log_info "Configuring GNOME laptop-specific settings..."
-        log_info "Detected GNOME components available (Desktop: $DESKTOP_ENV)"
+    if [[ "$has_gnome_components" == true ]]; then
+        log_info "Configuring comprehensive GNOME integration..."
+        log_info "Detected GNOME environment (Desktop: $DESKTOP_ENV)"
         
-        # Disable GNOME's built-in screen sharing that might conflict
+        # Create GNOME-specific config directory
+        mkdir -p "$USER_CONFIG/gnome-backup"
+        
+        # Enhanced GNOME settings management
         if command -v gsettings &> /dev/null; then
-            # Disable automatic screen lock when Input Leap is active
-            log_info "Configuring GNOME power management..."
+            log_info "Configuring GNOME desktop settings for Input Leap..."
             
-            # Store current settings for potential restoration
-            mkdir -p "$USER_CONFIG"
-            gsettings get org.gnome.desktop.screensaver lock-enabled > "$USER_CONFIG/gnome-lock-backup" 2>/dev/null || true
-            gsettings get org.gnome.desktop.session idle-delay > "$USER_CONFIG/gnome-idle-backup" 2>/dev/null || true
+            # Backup current GNOME settings
+            backup_gnome_settings
             
-            # Optional: Ask user about power management
-            echo ""
-            echo "GNOME Laptop Optimization:"
-            echo "Would you like to disable automatic screen lock while using Input Leap?"
-            echo "This prevents the laptop from locking when controlled remotely."
-            echo ""
-            echo -n "Disable auto-lock? (y/N): "
-            read -r disable_lock
+            # Configure power management for both laptop and desktop
+            configure_gnome_power_management
             
-            if [[ "$disable_lock" =~ ^[Yy]$ ]]; then
-                gsettings set org.gnome.desktop.screensaver lock-enabled false
-                gsettings set org.gnome.desktop.session idle-delay 0
-                log_success "Disabled GNOME auto-lock for better Input Leap experience"
-                echo "To restore later: gsettings set org.gnome.desktop.screensaver lock-enabled true"
-            fi
+            # Setup GNOME shell integration
+            setup_gnome_shell_integration
+            
+            # Configure GNOME input/accessibility settings
+            configure_gnome_accessibility
+            
+            # Setup GNOME notifications
+            setup_gnome_notifications
+            
+            # Configure GNOME session management
+            configure_gnome_session
         fi
         
-        # Install GNOME-specific dependencies if needed
-        if [[ "$IS_ARCH" == true ]]; then
-            log_info "Installing GNOME integration packages..."
-            sudo pacman -S --needed --noconfirm \
-                libnotify \
-                gnome-shell-extensions \
-                2>/dev/null || log_warn "Some GNOME packages may not be available"
-        fi
+        # Install comprehensive GNOME dependencies
+        install_gnome_dependencies
         
-        log_success "GNOME laptop configuration completed"
+        # Setup GNOME-specific service configuration
+        setup_gnome_service_config
+        
+        log_success "Complete GNOME integration configured"
+    else
+        log_info "GNOME components not detected - skipping GNOME-specific configuration"
     fi
+}
+
+# Backup current GNOME settings
+backup_gnome_settings() {
+    log_info "Backing up current GNOME settings..."
+    
+    # Power management settings
+    gsettings get org.gnome.desktop.screensaver lock-enabled > "$USER_CONFIG/gnome-backup/screensaver-lock" 2>/dev/null || true
+    gsettings get org.gnome.desktop.screensaver lock-delay > "$USER_CONFIG/gnome-backup/screensaver-delay" 2>/dev/null || true
+    gsettings get org.gnome.desktop.session idle-delay > "$USER_CONFIG/gnome-backup/session-idle" 2>/dev/null || true
+    gsettings get org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout > "$USER_CONFIG/gnome-backup/power-ac-timeout" 2>/dev/null || true
+    gsettings get org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout > "$USER_CONFIG/gnome-backup/power-battery-timeout" 2>/dev/null || true
+    
+    # Desktop settings
+    gsettings get org.gnome.desktop.notifications show-banners > "$USER_CONFIG/gnome-backup/notifications-banners" 2>/dev/null || true
+    gsettings get org.gnome.desktop.notifications show-in-lock-screen > "$USER_CONFIG/gnome-backup/notifications-lockscreen" 2>/dev/null || true
+    
+    # Accessibility settings
+    gsettings get org.gnome.desktop.a11y.applications screen-keyboard-enabled > "$USER_CONFIG/gnome-backup/a11y-keyboard" 2>/dev/null || true
+    gsettings get org.gnome.desktop.a11y.applications screen-magnifier-enabled > "$USER_CONFIG/gnome-backup/a11y-magnifier" 2>/dev/null || true
+    
+    # Privacy settings
+    gsettings get org.gnome.desktop.privacy remember-recent-files > "$USER_CONFIG/gnome-backup/privacy-recent" 2>/dev/null || true
+    gsettings get org.gnome.desktop.privacy remove-old-temp-files > "$USER_CONFIG/gnome-backup/privacy-temp" 2>/dev/null || true
+    
+    log_success "GNOME settings backed up to $USER_CONFIG/gnome-backup/"
+}
+
+# Configure GNOME power management
+configure_gnome_power_management() {
+    log_info "Configuring GNOME power management for Input Leap..."
+    
+    echo ""
+    echo "GNOME Power Management Configuration:"
+    echo "Input Leap works best with optimized power settings."
+    echo ""
+    echo "Recommended optimizations:"
+    echo "1. Disable automatic screen lock (prevents interruption during remote control)"
+    echo "2. Extend idle timeouts (prevents sleep during remote sessions)"
+    echo "3. Optimize suspend behavior (maintains network connectivity)"
+    echo ""
+    echo -n "Apply GNOME power optimizations? (Y/n): "
+    read -r apply_power_opts
+    
+    if [[ ! "$apply_power_opts" =~ ^[Nn]$ ]]; then
+        # Screen lock settings
+        gsettings set org.gnome.desktop.screensaver lock-enabled false
+        gsettings set org.gnome.desktop.screensaver lock-delay 0
+        
+        # Session idle settings
+        gsettings set org.gnome.desktop.session idle-delay 0
+        
+        # Power management settings
+        gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
+        gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800  # 30 min on battery
+        gsettings set org.gnome.settings-daemon.plugins.power power-button-action 'interactive'
+        
+        # Prevent suspend when lid is closed (for laptops)
+        if [[ "$IS_LAPTOP" == true ]]; then
+            gsettings set org.gnome.settings-daemon.plugins.power lid-close-ac-action 'nothing'
+            gsettings set org.gnome.settings-daemon.plugins.power lid-close-battery-action 'suspend'
+        fi
+        
+        log_success "GNOME power management optimized for Input Leap"
+    fi
+}
+
+# Setup GNOME Shell integration
+setup_gnome_shell_integration() {
+    log_info "Setting up GNOME Shell integration..."
+    
+    # Check if GNOME Shell is running
+    if pgrep -x gnome-shell > /dev/null; then
+        log_info "GNOME Shell detected - configuring extensions and integration"
+        
+        # Enable useful extensions for Input Leap (if available)
+        local extensions=(
+            "system-monitor@paradoxxx.zero.gmail.com"
+            "dash-to-dock@micxgx.gmail.com"
+            "topicons-plus@gnome-shell-extensions.gcampax.github.com"
+        )
+        
+        for ext in "${extensions[@]}"; do
+            if [[ -d "$HOME/.local/share/gnome-shell/extensions/$ext" ]] || [[ -d "/usr/share/gnome-shell/extensions/$ext" ]]; then
+                gnome-extensions enable "$ext" 2>/dev/null || true
+                log_info "Enabled GNOME extension: $ext"
+            fi
+        done
+        
+        # Configure shell behavior
+        gsettings set org.gnome.shell.extensions.dash-to-dock click-action 'minimize-or-overview' 2>/dev/null || true
+        gsettings set org.gnome.shell.extensions.dash-to-dock scroll-action 'cycle-windows' 2>/dev/null || true
+        
+        # Configure overview behavior
+        gsettings set org.gnome.mutter edge-tiling true
+        gsettings set org.gnome.mutter dynamic-workspaces true
+        gsettings set org.gnome.shell.overrides edge-tiling true
+        
+        log_success "GNOME Shell integration configured"
+    else
+        log_info "GNOME Shell not running - skipping shell-specific configuration"
+    fi
+}
+
+# Configure GNOME accessibility for better Input Leap support
+configure_gnome_accessibility() {
+    log_info "Configuring GNOME accessibility settings..."
+    
+    echo ""
+    echo -n "Enable GNOME accessibility features for better Input Leap support? (Y/n): "
+    read -r enable_a11y
+    
+    if [[ ! "$enable_a11y" =~ ^[Nn]$ ]]; then
+        # Enable accessibility bus (required for some Input Leap features)
+        gsettings set org.gnome.desktop.interface toolkit-accessibility true
+        
+        # Configure mouse/pointer settings
+        gsettings set org.gnome.desktop.peripherals.mouse natural-scroll false
+        gsettings set org.gnome.desktop.peripherals.mouse speed 0.0
+        gsettings set org.gnome.desktop.peripherals.mouse accel-profile 'default'
+        
+        # Configure touchpad (for laptops)
+        if [[ "$IS_LAPTOP" == true ]]; then
+            gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true
+            gsettings set org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true
+            gsettings set org.gnome.desktop.peripherals.touchpad natural-scroll true
+        fi
+        
+        # Configure keyboard settings
+        gsettings set org.gnome.desktop.peripherals.keyboard repeat true
+        gsettings set org.gnome.desktop.peripherals.keyboard delay 250
+        gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 30
+        
+        log_success "GNOME accessibility configured for Input Leap"
+    fi
+}
+
+# Setup GNOME notifications for Input Leap
+setup_gnome_notifications() {
+    log_info "Setting up GNOME notifications for Input Leap..."
+    
+    # Configure notification settings
+    gsettings set org.gnome.desktop.notifications show-banners true
+    gsettings set org.gnome.desktop.notifications show-in-lock-screen false
+    
+    # Create notification script for Input Leap events
+    cat > "$USER_CONFIG/notify-input-leap.sh" << 'EOF'
+#!/bin/bash
+# GNOME notification helper for Input Leap events
+
+notify_connection() {
+    local status="$1"
+    local server="$2"
+    
+    case "$status" in
+        "connected")
+            notify-send -i network-wireless -u normal "Input Leap" "Connected to $server"
+            ;;
+        "disconnected")
+            notify-send -i network-offline -u normal "Input Leap" "Disconnected from $server"
+            ;;
+        "error")
+            notify-send -i dialog-error -u critical "Input Leap" "Connection error: $server"
+            ;;
+        "reconnecting")
+            notify-send -i view-refresh -u normal "Input Leap" "Reconnecting to $server..."
+            ;;
+    esac
+}
+
+# Call function with parameters
+notify_connection "$@"
+EOF
+    
+    chmod +x "$USER_CONFIG/notify-input-leap.sh"
+    log_success "GNOME notifications configured for Input Leap"
+}
+
+# Configure GNOME session management
+configure_gnome_session() {
+    log_info "Configuring GNOME session management..."
+    
+    # Privacy settings for better Input Leap performance
+    gsettings set org.gnome.desktop.privacy remember-recent-files false
+    gsettings set org.gnome.desktop.privacy remove-old-temp-files true
+    gsettings set org.gnome.desktop.privacy remove-old-trash-files true
+    
+    # Search settings
+    gsettings set org.gnome.desktop.search-providers disable-external true
+    
+    # Background apps
+    gsettings set org.gnome.desktop.background show-desktop-icons false
+    
+    log_success "GNOME session optimized for Input Leap"
+}
+
+# Install comprehensive GNOME dependencies
+install_gnome_dependencies() {
+    if [[ "$IS_ARCH" == true ]]; then
+        log_info "Installing comprehensive GNOME integration packages..."
+        
+        local gnome_packages=(
+            "libnotify"                    # Desktop notifications
+            "gnome-shell-extensions"       # Shell extensions support
+            "gnome-tweaks"                # Advanced GNOME configuration
+            "dconf-editor"                # Settings editor
+            "gnome-control-center"        # Settings panel
+            "gnome-system-monitor"        # System monitoring
+            "gnome-session"               # Session management
+            "gnome-settings-daemon"       # Settings daemon
+            "gvfs"                        # Virtual filesystem
+            "gvfs-mtp"                    # MTP support
+            "xdg-desktop-portal-gnome"    # Desktop portal
+            "gnome-keyring"               # Keyring management
+        )
+        
+        # Try to install packages, but don't fail if some are unavailable
+        for package in "${gnome_packages[@]}"; do
+            if pacman -Si "$package" &>/dev/null; then
+                sudo pacman -S --needed --noconfirm "$package" || log_warn "Failed to install $package"
+            else
+                log_warn "Package $package not available in repositories"
+            fi
+        done
+        
+        log_success "GNOME integration packages installed"
+    else
+        log_info "Non-Arch system detected - GNOME package installation skipped"
+    fi
+}
+
+# Setup GNOME-specific service configuration
+setup_gnome_service_config() {
+    log_info "Setting up GNOME-specific service configuration..."
+    
+    # Create GNOME-optimized systemd service
+    local gnome_service_content="$(cat "$SYSTEMD_DIR/input-leap.service" | sed '
+s|Environment=XDG_SESSION_TYPE=x11|Environment=XDG_SESSION_TYPE=x11\nEnvironment=GNOME_DESKTOP_SESSION_ID=this-is-deprecated|
+/# GNOME\/Wayland compatibility/a\
+# GNOME-specific environment\
+Environment=GNOME_SHELL_SESSION_MODE=user\
+Environment=XDG_CURRENT_DESKTOP=GNOME\
+Environment=DESKTOP_SESSION=gnome
+')"
+    
+    # Write enhanced service file
+    echo "$gnome_service_content" > "$USER_SYSTEMD/input-leap.service"
+    
+    log_success "GNOME-optimized service configuration created"
 }
 
 # Create necessary directories
@@ -417,7 +664,7 @@ main() {
     check_existing_installation
     create_directories
     install_input_leap
-    setup_gnome_laptop
+    setup_gnome_integration
     setup_systemd
     setup_shell_integration
     configure_server
