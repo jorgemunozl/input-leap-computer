@@ -317,8 +317,19 @@ start_client() {
     
     # Test connection first
     if ! test_connection; then
-        log_error "Cannot connect to server. Check configuration and network."
-        log_info "Try: leap network test $SERVER_HOST:$SERVER_PORT"
+        log_error "Cannot connect to server at $SERVER_HOST:$SERVER_PORT"
+        echo ""
+        echo -e "${YELLOW}🤔 Common causes:${NC}"
+        echo -e "   ${CYAN}• Server is not running on your main computer${NC}"
+        echo -e "   ${CYAN}• Server hasn't been configured with this client${NC}"
+        echo -e "   ${CYAN}• Network/firewall blocking connection${NC}"
+        echo ""
+        echo -e "${YELLOW}💡 To fix:${NC}"
+        echo -e "   ${CYAN}1. On main computer: Start Input Leap server${NC}"
+        echo -e "   ${CYAN}2. Add this client (IP: $(hostname -I | awk '{print $1}'))${NC}"
+        echo -e "   ${CYAN}3. Try: leap network test $SERVER_HOST:$SERVER_PORT${NC}"
+        echo ""
+        echo -e "${RED}⚠️ Remember: Servers DON'T start automatically!${NC}"
         return 1
     fi
     

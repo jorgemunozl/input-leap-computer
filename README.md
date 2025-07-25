@@ -46,6 +46,11 @@ input-leap-server --config  # Configure in GUI
 # Start the server
 ```
 
+**⚠️ CRITICAL:** The server does NOT start automatically! You must:
+1. **Configure it once** (add this client machine)
+2. **Start it manually** every time you want to use Input Leap
+3. **Keep it running** while using Input Leap
+
 ### **Step 3: Connect!**
 ```bash
 # On this machine (client):
@@ -53,12 +58,37 @@ leap start                   # Connect to server
 leap status                  # Check connection
 ```
 
+**🔄 How it works:**
+- **Server OFF** → Client cannot connect (will show "server unreachable")
+- **Server ON** → Client connects automatically (if auto-start enabled)
+- **Server STOPS** → Client disconnects automatically
+
 ### **Step 4: Use It!**
 - Move mouse to screen edge → control switches to client
 - Move back → control returns to server
 - Keyboard follows mouse automatically! 🎉
 
-## 🤗 For Complete Beginners
+## � Why Isn't My Server Starting Automatically?
+
+**Input Leap servers are NEVER automatic!** Here's why:
+
+1. **Security**: Servers don't auto-start to prevent unauthorized access
+2. **Control**: You decide when to share your mouse/keyboard
+3. **Resources**: Only runs when you actually need it
+
+**The workflow is:**
+1. **Main computer**: Start Input Leap server manually
+2. **This machine**: Connects automatically (if configured)
+3. **Use Input Leap**: Move mouse/keyboard seamlessly
+4. **Done**: Stop server when finished
+
+**Common mistakes:**
+- ❌ Expecting server to start automatically
+- ❌ Forgetting to configure client IP on server
+- ❌ Not starting server before trying to connect
+- ✅ Start server manually, client connects automatically
+
+## �🤗 For Complete Beginners
 
 **Never used a terminal? No problem!** Here's what you need to know:
 
