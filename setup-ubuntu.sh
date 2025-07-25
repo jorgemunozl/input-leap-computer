@@ -90,22 +90,25 @@ detect_system() {
         log_info "Detected WSL (Windows Subsystem for Linux)"
     fi
     
-    # Detect desktop environment
-    if [[ "$XDG_CURRENT_DESKTOP" == *"GNOME"* ]] || [[ "$DESKTOP_SESSION" == *"gnome"* ]]; then
+    # Detect desktop environment - safely handle unset variables
+    local xdg_desktop="${XDG_CURRENT_DESKTOP:-}"
+    local desktop_session="${DESKTOP_SESSION:-}"
+    
+    if [[ "$xdg_desktop" == *"GNOME"* ]] || [[ "$desktop_session" == *"gnome"* ]]; then
         DESKTOP_ENV="GNOME"
         log_info "Detected GNOME desktop environment"
-    elif [[ "$XDG_CURRENT_DESKTOP" == *"KDE"* ]]; then
+    elif [[ "$xdg_desktop" == *"KDE"* ]]; then
         DESKTOP_ENV="KDE"
         log_info "Detected KDE desktop environment"
-    elif [[ "$XDG_CURRENT_DESKTOP" == *"XFCE"* ]]; then
+    elif [[ "$xdg_desktop" == *"XFCE"* ]]; then
         DESKTOP_ENV="XFCE"
         log_info "Detected XFCE desktop environment"
-    elif [[ "$XDG_CURRENT_DESKTOP" == *"Unity"* ]]; then
+    elif [[ "$xdg_desktop" == *"Unity"* ]]; then
         DESKTOP_ENV="UNITY"
         log_info "Detected Unity desktop environment"
     else
         DESKTOP_ENV="OTHER"
-        log_info "Desktop environment: ${XDG_CURRENT_DESKTOP:-Unknown}"
+        log_info "Desktop environment: ${xdg_desktop:-Unknown}"
     fi
     
     # Detect if laptop

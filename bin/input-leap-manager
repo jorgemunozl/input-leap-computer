@@ -23,12 +23,17 @@ mkdir -p "$(dirname "$CONFIG_FILE")" "$(dirname "$LOG_FILE")" "$(dirname "$PID_F
 
 # Detect desktop environment
 detect_desktop() {
+    # Safely handle potentially unset environment variables
+    local xdg_desktop="${XDG_CURRENT_DESKTOP:-}"
+    local desktop_session="${DESKTOP_SESSION:-}"
+    local session_type="${XDG_SESSION_TYPE:-}"
+    
     # Check for GNOME components first (may be available even with different WM)
-    if [[ "$XDG_CURRENT_DESKTOP" == *"GNOME"* ]] || [[ "$DESKTOP_SESSION" == *"gnome"* ]] || command -v gsettings &> /dev/null; then
+    if [[ "$xdg_desktop" == *"GNOME"* ]] || [[ "$desktop_session" == *"gnome"* ]] || command -v gsettings &> /dev/null; then
         echo "GNOME"
-    elif [[ "$XDG_CURRENT_DESKTOP" == *"KDE"* ]]; then
+    elif [[ "$xdg_desktop" == *"KDE"* ]]; then
         echo "KDE"
-    elif [[ "$XDG_SESSION_TYPE" == "wayland" ]]; then
+    elif [[ "$session_type" == "wayland" ]]; then
         echo "WAYLAND"
     else
         echo "X11"
@@ -218,17 +223,17 @@ start_client() {
         export DESKTOP_SESSION=gnome
         
         # Set display if not already set
-        if [[ -z "$DISPLAY" ]]; then
+        if [[ -z "${DISPLAY:-}" ]]; then
             export DISPLAY=:0
         fi
         
         # Set XDG runtime directory if needed
-        if [[ -z "$XDG_RUNTIME_DIR" ]]; then
+        if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
             export XDG_RUNTIME_DIR="/run/user/$(id -u)"
         fi
         
         # Ensure GNOME accessibility bus is available
-        if [[ -z "$AT_SPI_BUS_ADDRESS" ]] && command -v gsettings &>/dev/null; then
+        if [[ -z "${AT_SPI_BUS_ADDRESS:-}" ]] && command -v gsettings &>/dev/null; then
             # Start accessibility bus if not running
             if ! pgrep -x at-spi-bus-launcher >/dev/null; then
                 /usr/lib/at-spi2-core/at-spi-bus-launcher --launch-immediately &
