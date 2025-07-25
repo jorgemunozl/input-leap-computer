@@ -130,16 +130,34 @@ setup_systemd() {
 setup_shell_integration() {
     log_info "Setting up shell integration..."
     
-    # Create leap command symlink
+    # Create leap command symlink (try system-wide first, fall back to user local)
     local leap_cmd="/usr/local/bin/leap"
-    if [[ ! -L "$leap_cmd" ]]; then
-        sudo ln -sf "$BIN_DIR/leap" "$leap_cmd"
-        log_success "Created 'leap' command"
+    local user_bin="$HOME/.local/bin"
+    
+    if [[ ! -L "$leap_cmd" ]] && [[ ! -f "$leap_cmd" ]]; then
+        if sudo ln -sf "$BIN_DIR/leap" "$leap_cmd" 2>/dev/null; then
+            log_success "Created system-wide 'leap' command"
+        else
+            # Fall back to user local bin
+            mkdir -p "$user_bin"
+            ln -sf "$BIN_DIR/leap" "$user_bin/leap"
+            log_success "Created user 'leap' command in ~/.local/bin"
+            
+            # Add ~/.local/bin to PATH if not already there
+            if ! echo "$PATH" | grep -q "$user_bin"; then
+                if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null; then
+                    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+                    log_info "Added ~/.local/bin to PATH in .bashrc"
+                fi
+            fi
+        fi
+    else
+        log_success "'leap' command already exists"
     fi
     
     # Add to bashrc if not already there
-    local bashrc_line="source $CONFIG_DIR/bashrc_integration.sh"
-    if ! grep -q "$bashrc_line" "$HOME/.bashrc" 2>/dev/null; then
+    local bashrc_line="source \"$CONFIG_DIR/bashrc_integration.sh\""
+    if ! grep -q -F "$bashrc_line" "$HOME/.bashrc" 2>/dev/null; then
         echo "" >> "$HOME/.bashrc"
         echo "# Input Leap auto-start" >> "$HOME/.bashrc"
         echo "$bashrc_line" >> "$HOME/.bashrc"

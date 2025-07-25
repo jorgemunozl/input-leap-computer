@@ -17,7 +17,7 @@ auto_start_input_leap() {
     if [[ -x "$LEAP_MANAGER" ]] && command -v input-leap-client &> /dev/null; then
         
         # Check if already running
-        if ! "$LEAP_MANAGER" status &>/dev/null | grep -q "Running"; then
+        if ! "$LEAP_MANAGER" status 2>/dev/null | grep -q "Running"; then
             
             # Start in background, suppress output
             {

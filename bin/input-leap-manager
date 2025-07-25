@@ -87,6 +87,12 @@ configure() {
     echo -n "Enter server IP/hostname: "
     read -r server_input
     
+    # Validate input
+    if [[ -z "$server_input" ]]; then
+        log_error "Server IP/hostname cannot be empty"
+        return 1
+    fi
+    
     # Parse server input (handle IP:port or just IP)
     if [[ "$server_input" == *":"* ]]; then
         SERVER_HOST="${server_input%:*}"
@@ -94,6 +100,12 @@ configure() {
     else
         SERVER_HOST="$server_input"
         SERVER_PORT="24800"
+    fi
+    
+    # Validate port number
+    if ! [[ "$SERVER_PORT" =~ ^[0-9]+$ ]] || [ "$SERVER_PORT" -lt 1 ] || [ "$SERVER_PORT" -gt 65535 ]; then
+        log_error "Invalid port number: $SERVER_PORT"
+        return 1
     fi
     
     # Get client name (default to hostname)
@@ -175,9 +187,8 @@ start_client() {
     # Start client in background
     nohup input-leap-client \
         --name "$CLIENT_NAME" \
-        --log "$LOG_FILE" \
         "$SERVER_HOST:$SERVER_PORT" \
-        > /dev/null 2>&1 &
+        >> "$LOG_FILE" 2>&1 &
     
     local pid=$!
     echo "$pid" > "$PID_FILE"
