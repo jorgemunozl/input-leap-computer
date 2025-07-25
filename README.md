@@ -2,372 +2,143 @@
 
 **Turn on your client and Input Leap is ready!**
 
-A complete, robust automation system for Input Leap client setup and management. One command sets up everything you need for seamless mouse and keyboard sharing between your devices.
+Complete automation for Input Leap client setup and management. One command sets up everything you need for seamless mouse and keyboard sharing.
 
-## ✨ Features
+## 🚀 Quick Setup
 
-- 🚀 **One-command setup** - Everything configured automatically
-- 🔄 **Auto-connection** - Connects automatically on startup/login
-- 🛡️ **Robust error handling** - Graceful failure recovery
-- 📊 **Smart status monitoring** - Real-time connection health checks
-- 🔧 **Easy management** - Simple commands for all operations
-- 📱 **Desktop notifications** - Visual feedback for connection status
-- 🎯 **Zero configuration** - Works out of the box after setup
-- 🔒 **Safe installation** - Backup and rollback capabilities
-- 🖥️ **Enterprise GNOME support** - Complete integration with all GNOME desktop environments
-- 🔋 **Laptop power management** - Smart handling of auto-lock and power settings
-- 📦 **Pre-installation checks** - Detects existing installations safely
-- ⚡ **Xorg optimization** - Perfect compatibility with X11 sessions
-
-## 🖥️ Supported Systems
-
-### ✅ **Fully Supported & Optimized**
-- **Arch Linux** (official repos + AUR)
-  - 🖥️ **GNOME desktop environments** - Complete integration with Xorg
-  - 🔧 **KDE, XFCE, and other DEs** - Universal compatibility
-  - 💻 **Laptop and desktop systems** - Power management optimization
-  - 🎯 **Wayland and X11 sessions** - Automatic detection and optimization
-  - ⚡ **Xorg services** - Perfect X11 compatibility and backend forcing
-
-- **Ubuntu/Debian** (APT, Snap, Flatpak)
-  - 🐧 **Native Ubuntu GNOME integration** - Full desktop environment support
-  - 🔄 **Unity desktop compatibility** - Legacy Unity desktop support
-  - 📦 **Multiple installation methods** - APT packages, Snap, Flatpak support
-  - 🖥️ **WSL compatibility** - Works in Windows Subsystem for Linux
-  - 🔧 **Ubuntu-specific optimizations** - Tailored for Ubuntu/Debian systems
-
-### 🚧 **Planned Support**
-- **Fedora** - Under consideration
-- **Other distributions** - Community contributions welcome
-
-> **Note**: Now provides enterprise-grade support for both Arch Linux and Ubuntu/Debian with complete GNOME/Xorg integration across all supported distributions.
-
-## 🚀 Quick Start
-
-### **Pre-Test Validation** (Recommended)
+### **1. Choose Your System**
 ```bash
-./bin/validate-environment
-```
-This will check your system compatibility and show what features are available.
-
-### **Arch Linux (Fully Supported)**
-```bash
+# Arch Linux
 ./setup.sh
-```
 
-### **Ubuntu/Debian (Fully Supported)**
-```bash
+# Ubuntu/Debian  
 ./setup-ubuntu.sh
 ```
 
-### **Other Distributions**
-Check our [contribution guide](#-contributing) to help add support for your distribution!
+### **2. Enter Your Server Details**
+When prompted, enter your Input Leap server information:
 
-That's it! The setup script will:
-1. **Detect your system** (Arch Linux/Ubuntu, GNOME/KDE/Unity, laptop/desktop)
-2. **Check existing installations** (gives options to keep/reinstall/configure)
-3. **Install Input Leap** (from repos, AUR, APT, Snap, or Flatpak)
-4. **Configure desktop optimizations** (complete GNOME/Unity/KDE integration)
-5. **Set up server connection** (interactive configuration)
-6. **Enable auto-start** (bashrc + systemd service)
-7. **Test everything works** (connection validation)
-8. **Create convenient commands** (`leap` command)
+**Format options:**
+- `192.168.1.100` (IP only - adds default port 24800)
+- `192.168.1.100:24800` (IP with custom port)
+- `my-desktop` (hostname only - adds default port 24800)
+- `my-desktop:24800` (hostname with custom port)
 
-## 🖥️ **Enterprise GNOME Excellence**
+**Examples:**
+```
+Enter Input Leap server IP/hostname: 192.168.1.100
+Enter Input Leap server IP/hostname: desktop-pc:24800
+```
 
-This project provides **enterprise-grade GNOME integration** with comprehensive desktop environment support:
+### **3. Done!**
+The script automatically:
+- Detects your system (desktop environment, laptop/desktop)
+- Installs Input Leap (if needed)
+- Configures everything
+- Sets up auto-start
+- Tests the connection
 
-### ⚡ **Complete GNOME Desktop Integration**
-- **Universal GNOME support** - Works with full GNOME, GNOME components, and mixed environments
-- **Smart environment detection** - Automatically detects and optimizes for any GNOME configuration
-- **Advanced power management** - Comprehensive power profile optimization for all system types
-- **Native notification system** - Full GNOME notification center integration with custom icons
+## 💻 Usage
 
-### 🔧 **Advanced GNOME Services Integration**
-- **Shell extension compatibility** - Seamless integration with GNOME Shell extensions ecosystem
-- **Accessibility framework** - Complete assistive technology and accessibility bus support  
-- **Session management** - Intelligent session type detection and X11/Wayland optimization
-- **Keyring integration** - Secure credential management with GNOME Keyring
-- **Settings backup/restore** - Comprehensive backup system with one-click restoration
-
-### 💻 **All System Type Support**
-- **Desktop optimization** - Full-featured desktop environment integration
-- **Laptop excellence** - Advanced laptop-specific features (battery, lid, touchpad)
-- **Mixed environment** - Perfect support for Openbox+GNOME, i3+GNOME, etc.
-- **Power profile awareness** - Intelligent adaptation to different power states
-
-## 🎮 Usage
-
-### Command Line Interface
 ```bash
-# Simple leap commands
 leap start      # Connect to server
 leap stop       # Disconnect  
-leap restart    # Reconnect
-leap status     # Check connection status
-leap config     # Configure/reconfigure server
-leap test       # Test server connection
-leap logs       # View client logs
+leap status     # Check status
+leap config     # Change server settings
+leap test       # Test connection
 ```
 
-### Automatic Operation
-- **On login**: Automatically connects via `.bashrc` integration
-- **On boot**: Connects via systemd service (if enabled)
-- **Silent**: Runs in background without interrupting workflow
-- **Smart**: Only starts if not already running
+### 🌐 Network Management
 
-### Management Commands
 ```bash
-# Systemd service management
-systemctl --user start input-leap.service    # Start service
-systemctl --user stop input-leap.service     # Stop service  
-systemctl --user enable input-leap.service   # Enable auto-start
-systemctl --user status input-leap.service   # Check status
+# Network interface management
+leap network status     # Show all network interfaces
+leap network auto       # Auto-configure best interface
+leap network test HOST  # Test connectivity to server
+leap network check      # Check Input Leap server connectivity
+
+# Short version
+leap net status         # Same as leap network status
+leap net auto           # Same as leap network auto
 ```
 
-## ⚙️ Configuration
-
-### Server Setup
-During setup, you'll be prompted to enter your Input Leap server details:
-- **IP with port**: `192.168.1.100:24800`
-- **Hostname with port**: `desktop-pc:24800`  
-- **IP only**: `192.168.1.100` (automatically adds default port 24800)
-
-Configuration is saved to `~/.config/input-leap/server.conf`
-
-### Client Name
-The script automatically uses your hostname as the client name, but you can customize it during configuration.
-
-## 📁 Project Structure
-
-```
-input-leap/
-├── setup.sh                    # Main setup script for Arch Linux
-├── setup-ubuntu.sh             # Complete setup script for Ubuntu/Debian
-├── bin/                        # Executable scripts
-│   ├── input-leap-manager      # Core management script
-│   ├── leap                    # Simple command wrapper
-│   ├── validate-environment    # Pre-test system validator
-│   ├── restore-gnome-settings.sh # GNOME settings restoration
-│   ├── connect_input_leap.sh   # Legacy script (backup)
-│   ├── install_input_leap.sh   # Legacy script (backup)
-│   └── auto_input_leap.sh      # Legacy script (backup)
-├── config/                     # Configuration templates
-│   └── bashrc_integration.sh   # Shell integration
-├── systemd/                    # Service definitions
-│   └── input-leap.service      # Systemd service template
-├── docs/                       # Documentation
-│   ├── GNOME-LAPTOP-SUPPORT.md # GNOME-specific guide
-│   └── TESTING-GUIDE.md        # Comprehensive testing guide
-├── README.md                   # This file
-└── .gitignore                  # Git ignore rules
-```
-
-### File Locations
-- **Configuration**: `~/.config/input-leap/server.conf`
-- **Logs**: `~/.cache/input-leap/client.log`
-- **PID file**: `~/.cache/input-leap/client.pid`
-- **Service file**: `~/.config/systemd/user/input-leap.service`
-
-### Custom Configuration
-You can manually edit the configuration file:
-```bash
-# Edit server configuration
-nano ~/.config/input-leap/server.conf
-
-# Test the configuration
-leap test
-```
-
-## 🔧 Installation Details
-
-The `setup.sh` script handles everything automatically:
-
-### **System Detection:**
-- **Desktop Environment**: GNOME, KDE, XFCE detection
-- **System Type**: Laptop vs desktop identification  
-- **Distribution**: Arch Linux validation
-- **Existing Installations**: Smart detection and user choice
-
-### **Package Installation** (Arch Linux):
-- Tries official Arch repository first (`input-leap`)
-- Falls back to AUR (`input-leap-git`) if needed
-- Installs `yay` AUR helper automatically if required
-- Validates installation before proceeding
-
-### **GNOME + Xorg Optimizations:**
-- 🔍 **Automatic GNOME detection** - Detects GNOME desktop environment
-- 🔋 **Battery/power supply detection** - Smart laptop optimization
-- 🔒 **Optional auto-lock disabling** - For seamless remote control
-- ⚡ **X11 backend forcing** - Ensures perfect Xorg compatibility
-- 🖥️ **Display environment configuration** - Proper DISPLAY and XDG variables
-- 🔧 **GNOME shell extensions integration** - Native desktop integration
-- 📱 **Desktop notifications setup** - Visual feedback system
-- 🎯 **Wayland fallback handling** - Automatic X11 preference for stability
-
-### **System Integration:**
-- Creates systemd user service with proper dependencies
-- Adds `leap` command to system PATH (with fallback to ~/.local/bin)
-- Sets up auto-start in `.bashrc` with proper quoting
-- Configures environment variables for GUI applications
-
-### **Configuration & Testing:**
-- Interactive server setup with input validation
-- Network connectivity testing before connection
-- Complete system testing and health checks
-- Graceful error handling and recovery
+**Network Features:**
+- **Auto-detects Ethernet interfaces** - Prioritizes wired connections
+- **Configures DHCP automatically** - Gets IP addresses automatically  
+- **Tests connectivity** - Verifies server reachability
+- **Handles interface failures** - Falls back to WiFi if needed
 
 ## 🛠️ Troubleshooting
 
-### Quick Diagnostics
 ```bash
-# Check overall status
+# Check status
 leap status
 
-# Test server connection
+# Test server connection  
 leap test
 
-# View recent logs
+# View logs
 leap logs
 
-# Restart connection
+# Restart everything
 leap restart
 
-# Reconfigure server
+# Change server settings
 leap config
 ```
 
-### Common Issues
+### 🌐 Network Issues
 
-#### Connection Failed
 ```bash
-# Check if server is reachable
-leap test
+# Check network interfaces
+leap network status
 
-# Verify configuration
-cat ~/.config/input-leap/server.conf
+# Auto-fix network issues
+leap network auto
 
-# Check firewall settings
-sudo ufw status
+# Test specific server
+leap network test 192.168.1.100:24800
+
+# Check configured server
+leap network check
 ```
 
-#### Service Issues
-```bash
-# Check systemd service status
-systemctl --user status input-leap.service
+**Common Network Problems:**
+- **No Ethernet connection** - Run `leap network auto` to configure
+- **Wrong interface active** - Use `leap network status` to see all interfaces
+- **Server unreachable** - Use `leap network test SERVER` to verify connectivity
 
-# View service logs
-journalctl --user -u input-leap.service -f
+## 📁 Files & Configuration
 
-# Restart service
-systemctl --user restart input-leap.service
+### Important Files
+- **Configuration**: `~/.config/input-leap/server.conf`
+- **Logs**: `~/.cache/input-leap/client.log`
+- **Service**: `~/.config/systemd/user/input-leap.service`
+
+### Project Structure
 ```
-
-#### Manual Recovery
-```bash
-# Stop everything
-leap stop
-systemctl --user stop input-leap.service
-
-# Clean up
-rm -f ~/.cache/input-leap/client.pid
-rm -f ~/.cache/input-leap/client.lock
-
-# Restart
-leap start
+input-leap/
+├── setup.sh                    # Arch Linux setup
+├── setup-ubuntu.sh             # Ubuntu/Debian setup  
+├── bin/
+│   ├── input-leap-manager      # Core management
+│   ├── leap                    # Simple commands
+│   └── validate-environment    # System check
+└── systemd/
+    └── input-leap.service      # Service template
 ```
-
-### GNOME-Specific Issues
-
-#### Wayland vs Xorg Optimization
-```bash
-# Check current session type
-echo $XDG_SESSION_TYPE
-
-# View automatic Xorg optimization (built-in)
-leap status  # Shows detected desktop environment
-
-# Manual Xorg forcing (if needed)
-export GDK_BACKEND=x11
-leap restart
-```
-
-#### Complete GNOME Services Integration
-```bash
-# View GNOME-specific optimizations applied
-leap logs | grep -i gnome
-
-# Check power management settings
-gsettings get org.gnome.desktop.screensaver lock-enabled
-gsettings get org.gnome.desktop.session idle-delay
-
-# Verify Xorg backend configuration
-echo $GDK_BACKEND
-```
-
-#### Screen Lock & Power Management
-```bash
-# Run full GNOME optimizations
-./setup.sh
-# Choose option 1 if Input Leap already installed
-# Select 'y' for auto-lock disabling when prompted
-
-# Manual power management (if needed)
-gsettings set org.gnome.desktop.screensaver lock-enabled false
-gsettings set org.gnome.desktop.session idle-delay 0
-```
-
-## 🎯 Future Plans
-
-### Ubuntu Support (Coming Soon!)
-We're working on Ubuntu/Debian support with these planned features:
-
-- **APT package management** with PPA support
-- **Ubuntu GNOME optimizations** - Same level of GNOME/Xorg integration
-- **Snap package detection** and handling
-- **WSL compatibility** for Windows users
-- **Unity desktop support** - Complete desktop environment coverage
-- **Xorg service management** - Consistent X11 optimization across distributions
-
-### Fedora & Other Distributions
-- **DNF/YUM package management**
-- **SELinux compatibility**
-- **Flatpak integration**
-
-**Want to help?** Contributions for other distributions are very welcome!
 
 ## 🚀 Contributing
 
-Contributions are welcome! Please:
-
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create feature branch: `git checkout -b feature/name`
+3. Commit changes: `git commit -m 'Add feature'`
+4. Push: `git push origin feature/name`
+5. Open Pull Request
 
-### Development Setup
-```bash
-# Clone the repository
-git clone git@github.com:jorgemunozl/input-leap-computer.git
-cd input-leap-computer
+## 📄 License
 
-# Make scripts executable
-chmod +x setup.sh bin/*
-
-# Test the setup
-./setup.sh
-```
-
-## � License
-
-This project is open source and available under the MIT License.
-
-## � Acknowledgments
-
-- [Input Leap](https://github.com/input-leap/input-leap) - The amazing KVM software
-- Arch Linux community for excellent packaging
-- All contributors who help make this better
+MIT License - see LICENSE file for details.
 
 ---
 

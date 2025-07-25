@@ -193,9 +193,37 @@ start_client() {
         return 1
     fi
     
+    # Check network interfaces first
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local network_manager="$script_dir/network-manager"
+    
+    if [[ -x "$network_manager" ]]; then
+        log_info "Checking network interfaces..."
+        if ! "$network_manager" auto > /dev/null 2>&1; then
+            log_warn "Network auto-configuration failed. Trying manual network check..."
+            
+            # Show network status for user awareness
+            log_info "Current network status:"
+            "$network_manager" status
+            
+            # Ask user if they want to continue
+            echo -n "Network issues detected. Continue anyway? [y/N]: "
+            read -r continue_choice
+            if [[ ! "$continue_choice" =~ ^[Yy] ]]; then
+                log_error "Connection cancelled. Fix network issues first."
+                log_info "Try: leap network auto   # Auto-configure network"
+                log_info "Or:  leap network status # Check network status"
+                return 1
+            fi
+        else
+            log_success "Network interface configured successfully"
+        fi
+    fi
+    
     # Test connection first
     if ! test_connection; then
         log_error "Cannot connect to server. Check configuration and network."
+        log_info "Try: leap network test $SERVER_HOST:$SERVER_PORT"
         return 1
     fi
     
@@ -403,6 +431,12 @@ usage() {
     echo "  config     Configure server connection"
     echo "  test       Test server connection"
     echo "  logs       Show client logs"
+    echo ""
+    echo "Network Commands (via leap network):"
+    echo "  leap network status     Show network interface status"
+    echo "  leap network auto       Auto-configure best interface"
+    echo "  leap network test HOST  Test connectivity to server"
+    echo "  leap network check      Check Input Leap server"
     echo ""
     echo "Files:"
     echo "  Config: $CONFIG_FILE"

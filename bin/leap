@@ -7,6 +7,20 @@
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 readonly MANAGER="$SCRIPT_DIR/input-leap-manager"
+readonly NETWORK_MANAGER="$SCRIPT_DIR/network-manager"
 
-# Execute the manager with all arguments
-exec "$MANAGER" "$@"
+# Handle network-specific commands
+case "${1:-}" in
+    "network")
+        shift
+        exec "$NETWORK_MANAGER" "$@"
+        ;;
+    "net")
+        shift
+        exec "$NETWORK_MANAGER" "$@"
+        ;;
+    *)
+        # Execute the manager with all arguments
+        exec "$MANAGER" "$@"
+        ;;
+esac
