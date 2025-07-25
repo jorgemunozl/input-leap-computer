@@ -16,6 +16,7 @@ readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
 readonly BLUE='\033[0;34m'
+readonly CYAN='\033[0;36m'
 readonly NC='\033[0m'
 
 # Ensure directories exist
@@ -102,13 +103,22 @@ load_config() {
 configure() {
     log_info "Configuring Input Leap server connection..."
     
-    # Get server details
+    echo ""
+    echo -e "${BLUE}📡 Input Leap Server Configuration${NC}"
+    echo ""
+    echo "Enter your Input Leap server details. Examples:"
+    echo -e "  ${GREEN}192.168.1.100${NC}        (IP only - uses default port 24800)"
+    echo -e "  ${GREEN}192.168.1.100:24800${NC}  (IP with port)"
+    echo -e "  ${GREEN}my-desktop${NC}           (hostname only - uses default port 24800)"
+    echo -e "  ${GREEN}my-desktop:24800${NC}     (hostname with port)"
+    echo ""
     echo -n "Enter server IP/hostname: "
     read -r server_input
     
     # Validate input
     if [[ -z "$server_input" ]]; then
         log_error "Server IP/hostname cannot be empty"
+        log_info "Example: 192.168.1.100 or my-desktop:24800"
         return 1
     fi
     
@@ -170,11 +180,17 @@ test_connection() {
     
     # Test Input Leap port specifically
     if timeout 5 bash -c "</dev/tcp/$SERVER_HOST/$SERVER_PORT" 2>/dev/null; then
-        log_success "Server is reachable at $SERVER_HOST:$SERVER_PORT"
+        log_success "✅ Server is reachable at $SERVER_HOST:$SERVER_PORT"
         return 0
     else
-        log_error "Cannot reach server at $SERVER_HOST:$SERVER_PORT"
-        log_info "Please check: 1) Server is running 2) Port $SERVER_PORT is open 3) Network connectivity"
+        log_error "❌ Cannot reach server at $SERVER_HOST:$SERVER_PORT"
+        echo ""
+        echo -e "${YELLOW}💡 Troubleshooting tips:${NC}"
+        echo -e "  1. ${BLUE}Check server is running:${NC} Make sure Input Leap server is started"
+        echo -e "  2. ${BLUE}Check network:${NC} Try 'leap network status' to see network interfaces"
+        echo -e "  3. ${BLUE}Check firewall:${NC} Port $SERVER_PORT must be open on the server"
+        echo -e "  4. ${BLUE}Test manually:${NC} Try 'leap network test $SERVER_HOST:$SERVER_PORT'"
+        echo ""
         return 1
     fi
 }
@@ -370,34 +386,66 @@ restart_client() {
 
 # Show status
 show_status() {
-    echo -e "${BLUE}Input Leap Client Status${NC}"
-    echo "========================"
+    echo ""
+    echo -e "${BLUE}🖱️  Input Leap Client Status${NC}"
+    echo "═══════════════════════════════════"
     
     if is_running; then
         local pid=$(cat "$PID_FILE")
-        echo -e "Status: ${GREEN}Running${NC} (PID: $pid)"
+        echo -e "Status: ${GREEN}🟢 Running${NC} (PID: $pid)"
         
         if load_config; then
-            echo "Server: $SERVER_HOST:$SERVER_PORT"
-            echo "Client: $CLIENT_NAME"
+            echo -e "Server: ${CYAN}$SERVER_HOST:$SERVER_PORT${NC}"
+            echo -e "Client: ${CYAN}$CLIENT_NAME${NC}"
+            
+            # Test connection quickly
+            echo -e "Connection: ${YELLOW}Testing...${NC}"
+            if timeout 2 bash -c "</dev/tcp/$SERVER_HOST/$SERVER_PORT" 2>/dev/null; then
+                echo -e "\rConnection: ${GREEN}✅ Connected${NC}    "
+            else
+                echo -e "\rConnection: ${RED}❌ No connection${NC}"
+            fi
         fi
         
         # Show process info
-        if ps -p "$pid" -o pid,ppid,cmd --no-headers 2>/dev/null; then
+        echo ""
+        echo -e "${BLUE}Process Info:${NC}"
+        if ps -p "$pid" -o pid,ppid,cmd --no-headers 2>/dev/null | sed 's/^/  /'; then
             echo ""
         fi
     else
-        echo -e "Status: ${RED}Not running${NC}"
+        echo -e "Status: ${RED}🔴 Not running${NC}"
+        
+        if load_config; then
+            echo -e "Server: ${CYAN}$SERVER_HOST:$SERVER_PORT${NC} (configured)"
+            echo -e "Client: ${CYAN}$CLIENT_NAME${NC}"
+        else
+            echo -e "Configuration: ${YELLOW}⚠️  Not configured${NC}"
+            echo -e "Run: ${GREEN}leap config${NC} to set up"
+        fi
     fi
     
     # Show recent log entries
     echo ""
-    echo "Recent log entries:"
+    echo -e "${BLUE}📋 Recent Activity:${NC}"
     if [[ -f "$LOG_FILE" ]]; then
-        tail -5 "$LOG_FILE" | sed 's/^/  /'
+        tail -5 "$LOG_FILE" | sed 's/^/  📄 /'
     else
-        echo "  No log file found"
+        echo "  📄 No log file found"
     fi
+    
+    # Show useful commands
+    echo ""
+    echo -e "${BLUE}💡 Quick Commands:${NC}"
+    if is_running; then
+        echo -e "  ${GREEN}leap stop${NC}     Stop the client"
+        echo -e "  ${GREEN}leap restart${NC}  Restart the client"
+    else
+        echo -e "  ${GREEN}leap start${NC}    Start the client"
+        echo -e "  ${GREEN}leap config${NC}   Configure server"
+    fi
+    echo -e "  ${GREEN}leap network status${NC}  Check network"
+    echo ""
 }
 
 # Show logs
@@ -419,28 +467,33 @@ show_logs() {
 
 # Show usage
 usage() {
-    echo "Input Leap Manager"
     echo ""
-    echo "Usage: $(basename "$0") [command]"
+    echo -e "${BLUE}🖱️  Input Leap Manager - Help${NC}"
+    echo "════════════════════════════════════"
     echo ""
-    echo "Commands:"
-    echo "  start      Start the Input Leap client"
-    echo "  stop       Stop the Input Leap client"
-    echo "  restart    Restart the Input Leap client"
-    echo "  status     Show client status"
-    echo "  config     Configure server connection"
-    echo "  test       Test server connection"
-    echo "  logs       Show client logs"
+    echo -e "${GREEN}Basic Commands:${NC}"
+    echo -e "  ${CYAN}leap start${NC}      Start the Input Leap client"
+    echo -e "  ${CYAN}leap stop${NC}       Stop the Input Leap client"
+    echo -e "  ${CYAN}leap restart${NC}    Restart the Input Leap client"
+    echo -e "  ${CYAN}leap status${NC}     Show detailed client status"
+    echo -e "  ${CYAN}leap config${NC}     Configure server connection"
+    echo -e "  ${CYAN}leap test${NC}       Test server connection"
+    echo -e "  ${CYAN}leap logs${NC}       View client logs"
     echo ""
-    echo "Network Commands (via leap network):"
-    echo "  leap network status     Show network interface status"
-    echo "  leap network auto       Auto-configure best interface"
-    echo "  leap network test HOST  Test connectivity to server"
-    echo "  leap network check      Check Input Leap server"
+    echo -e "${GREEN}Network Commands:${NC}"
+    echo -e "  ${CYAN}leap network status${NC}     Show all network interfaces"
+    echo -e "  ${CYAN}leap network auto${NC}       Auto-configure best interface"
+    echo -e "  ${CYAN}leap network test HOST${NC}  Test connectivity to server"
+    echo -e "  ${CYAN}leap network check${NC}      Check configured Input Leap server"
     echo ""
-    echo "Files:"
-    echo "  Config: $CONFIG_FILE"
-    echo "  Logs:   $LOG_FILE"
+    echo -e "${GREEN}Examples:${NC}"
+    echo -e "  ${YELLOW}leap config${NC}                    # Set up server connection"
+    echo -e "  ${YELLOW}leap network test 192.168.1.100${NC} # Test server connectivity"
+    echo -e "  ${YELLOW}leap status${NC}                    # See current status"
+    echo ""
+    echo -e "${GREEN}Configuration Files:${NC}"
+    echo -e "  Config: ${CYAN}$CONFIG_FILE${NC}"
+    echo -e "  Logs:   ${CYAN}$LOG_FILE${NC}"
     echo "  PID:    $PID_FILE"
 }
 

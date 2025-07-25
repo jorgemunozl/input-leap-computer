@@ -657,22 +657,45 @@ main() {
     log_info "   • Test everything works"
     echo ""
     
+    echo -e "${BLUE}[1/11]${NC} Checking permissions..."
     check_root
+    
+    echo -e "${BLUE}[2/11]${NC} Detecting system configuration..."
     detect_system
+    
+    echo -e "${BLUE}[3/11]${NC} Checking existing installations..."
     check_existing_installation
+    
+    echo -e "${BLUE}[4/11]${NC} Creating directories..."
     create_directories
+    
+    echo -e "${BLUE}[5/11]${NC} Installing Input Leap..."
     install_input_leap
+    
+    echo -e "${BLUE}[6/11]${NC} Setting up GNOME integration..."
     setup_gnome_integration
+    
+    echo -e "${BLUE}[7/11]${NC} Configuring systemd service..."
     setup_systemd
+    
+    echo -e "${BLUE}[8/11]${NC} Setting up shell integration..."
     setup_shell_integration
+    
+    echo -e "${BLUE}[9/11]${NC} Configuring server connection..."
     configure_server
+    
+    echo -e "${BLUE}[10/11]${NC} Testing setup..."
     test_setup
+    
+    echo -e "${BLUE}[11/11]${NC} Enabling auto-start..."
     enable_autostart
+    
     show_usage
     
     echo ""
     echo -e "${GREEN}🎉 Arch Linux Input Leap Setup Complete! 🎉${NC}"
-    echo -e "${CYAN}Turn on your client and enjoy seamless mouse/keyboard sharing!${NC}"
+    echo -e "${CYAN}📱 Use 'leap status' to check everything${NC}"
+    echo -e "${CYAN}🖱️  Turn on your client and enjoy seamless mouse/keyboard sharing!${NC}"
 }
 
 # Run if called directly

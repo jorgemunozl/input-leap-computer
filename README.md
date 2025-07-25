@@ -58,33 +58,34 @@ This project is **optimized for Arch Linux** because:
 
 ## 💻 Usage
 
+### 🖱️ **Basic Commands**
 ```bash
 leap start      # Connect to server
 leap stop       # Disconnect  
-leap status     # Check status
-leap config     # Change server settings
-leap test       # Test connection
+leap status     # Check status with real-time info
+leap config     # Configure server (with examples!)
+leap test       # Test connection with helpful tips
 ```
 
-### 🌐 Network Management
-
+### 🌐 **Network Management**
 ```bash
-# Network interface management
-leap network status     # Show all network interfaces
-leap network auto       # Auto-configure best interface
-leap network test HOST  # Test connectivity to server
-leap network check      # Check Input Leap server connectivity
+# Quick network fixes
+leap network status     # 📊 Show all interfaces with IP/status  
+leap network auto       # 🔧 Auto-configure best interface
+leap network test HOST  # 🔍 Test server connectivity
+leap network check      # ✅ Check configured Input Leap server
 
-# Short version
+# Short version (same commands)
 leap net status         # Same as leap network status
 leap net auto           # Same as leap network auto
 ```
 
-**Network Features:**
-- **Auto-detects Ethernet interfaces** - Prioritizes wired connections
-- **Configures DHCP automatically** - Gets IP addresses automatically  
-- **Tests connectivity** - Verifies server reachability
-- **Handles interface failures** - Falls back to WiFi if needed
+**Smart Network Features:**
+- **🔍 Auto-detects Ethernet** - Prioritizes wired over WiFi
+- **⚡ DHCP magic** - Gets IP addresses automatically  
+- **🔍 Connection testing** - Shows exactly what's wrong
+- **🔄 Fallback handling** - Switches to WiFi if Ethernet fails
+- **💡 Helpful error messages** - Tells you exactly how to fix issues
 
 ## 🛠️ Troubleshooting
 

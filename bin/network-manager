@@ -11,6 +11,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
@@ -320,27 +321,32 @@ check_server_config() {
 
 # Function to show help
 show_help() {
-    echo "Input Leap Network Manager"
-    echo
-    echo "Usage: $0 [COMMAND] [OPTIONS]"
-    echo
-    echo "Commands:"
-    echo "  status                    Show network interface status"
-    echo "  auto                      Auto-configure best network interface"
-    echo "  up <interface>           Bring up specific interface"
-    echo "  force <interface>        Force configure specific interface"
-    echo "  test [server:port]       Test connectivity to server"
-    echo "  check                    Check Input Leap server connectivity"
-    echo "  reset                    Reset network configuration"
-    echo "  help                     Show this help"
-    echo
-    echo "Examples:"
-    echo "  $0 status               # Show all interface status"
-    echo "  $0 auto                 # Auto-configure best interface"
-    echo "  $0 up eth0              # Bring up eth0 interface"
-    echo "  $0 force enp3s0         # Force configure enp3s0"
-    echo "  $0 test 192.168.1.100   # Test connectivity to server"
-    echo "  $0 check                # Test configured Input Leap server"
+    echo ""
+    echo -e "${BLUE}🌐 Input Leap Network Manager${NC}"
+    echo "═══════════════════════════════════════"
+    echo ""
+    echo -e "${GREEN}Basic Commands:${NC}"
+    echo -e "  ${CYAN}leap network status${NC}              Show all network interfaces"
+    echo -e "  ${CYAN}leap network auto${NC}                Auto-configure best interface"
+    echo -e "  ${CYAN}leap network test HOST${NC}           Test connectivity to server"
+    echo -e "  ${CYAN}leap network check${NC}               Check Input Leap server"
+    echo ""
+    echo -e "${GREEN}Advanced Commands:${NC}"
+    echo -e "  ${CYAN}leap network up <interface>${NC}      Bring up specific interface"
+    echo -e "  ${CYAN}leap network force <interface>${NC}   Force configure interface"
+    echo -e "  ${CYAN}leap network reset${NC}               Reset network configuration"
+    echo ""
+    echo -e "${GREEN}Examples:${NC}"
+    echo -e "  ${YELLOW}leap network status${NC}             # Show all interface status"
+    echo -e "  ${YELLOW}leap network auto${NC}               # Auto-configure best interface"
+    echo -e "  ${YELLOW}leap network test 192.168.1.100${NC} # Test server connectivity"
+    echo -e "  ${YELLOW}leap network up eth0${NC}            # Bring up eth0 interface"
+    echo ""
+    echo -e "${GREEN}Troubleshooting:${NC}"
+    echo -e "  ${BLUE}No Ethernet?${NC} Run ${CYAN}leap network auto${NC} to configure"
+    echo -e "  ${BLUE}Can't connect?${NC} Run ${CYAN}leap network test SERVER${NC} first"
+    echo -e "  ${BLUE}Multiple interfaces?${NC} Use ${CYAN}leap network status${NC} to see all"
+    echo ""
 }
 
 # Main function
