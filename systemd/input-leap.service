@@ -1,0 +1,27 @@
+[Unit]
+Description=Input Leap Client Auto Connect
+Documentation=https://github.com/input-leap/input-leap
+After=network-online.target graphical-session.target
+Wants=network-online.target
+Requisite=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart={{PROJECT_ROOT}}/bin/input-leap-manager start
+ExecStop={{PROJECT_ROOT}}/bin/input-leap-manager stop
+ExecReload={{PROJECT_ROOT}}/bin/input-leap-manager restart
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=30
+TimeoutStopSec=10
+
+# Ensure we have a display for GUI notifications
+Environment=DISPLAY=:0
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=input-leap-client
+
+[Install]
+WantedBy=default.target

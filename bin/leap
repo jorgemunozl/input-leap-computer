@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Leap - Simple wrapper for Input Leap Manager
+# Usage: leap [command]
+
+# Find the project root (assuming this script is in bin/)
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+readonly MANAGER="$SCRIPT_DIR/input-leap-manager"
+
+# Execute the manager with all arguments
+exec "$MANAGER" "$@"

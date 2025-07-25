@@ -1,0 +1,359 @@
+#!/bin/bash
+
+# Input Leap Manager - Smart connection management
+# Usage: input-leap-manager [start|stop|restart|status|config|test|logs]
+
+set -euo pipefail
+
+# Configuration
+readonly CONFIG_FILE="$HOME/.config/input-leap/server.conf"
+readonly LOG_FILE="$HOME/.cache/input-leap/client.log"
+readonly PID_FILE="$HOME/.cache/input-leap/client.pid"
+readonly LOCK_FILE="$HOME/.cache/input-leap/client.lock"
+
+# Colors
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly NC='\033[0m'
+
+# Ensure directories exist
+mkdir -p "$(dirname "$CONFIG_FILE")" "$(dirname "$LOG_FILE")" "$(dirname "$PID_FILE")"
+
+# Logging functions
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+    log "INFO: $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+    log "WARN: $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+    log "ERROR: $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    log "SUCCESS: $1"
+}
+
+# Check if client is running
+is_running() {
+    if [[ -f "$PID_FILE" ]]; then
+        local pid=$(cat "$PID_FILE")
+        if ps -p "$pid" > /dev/null 2>&1; then
+            return 0
+        else
+            rm -f "$PID_FILE"
+        fi
+    fi
+    return 1
+}
+
+# Load configuration
+load_config() {
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        return 1
+    fi
+    
+    source "$CONFIG_FILE"
+    
+    # Validate required variables
+    if [[ -z "${SERVER_HOST:-}" ]]; then
+        return 1
+    fi
+    
+    # Set defaults
+    SERVER_PORT="${SERVER_PORT:-24800}"
+    CLIENT_NAME="${CLIENT_NAME:-$(hostname)}"
+    
+    return 0
+}
+
+# Interactive configuration
+configure() {
+    log_info "Configuring Input Leap server connection..."
+    
+    # Get server details
+    echo -n "Enter server IP/hostname: "
+    read -r server_input
+    
+    # Parse server input (handle IP:port or just IP)
+    if [[ "$server_input" == *":"* ]]; then
+        SERVER_HOST="${server_input%:*}"
+        SERVER_PORT="${server_input#*:}"
+    else
+        SERVER_HOST="$server_input"
+        SERVER_PORT="24800"
+    fi
+    
+    # Get client name (default to hostname)
+    echo -n "Enter client name [$(hostname)]: "
+    read -r client_input
+    CLIENT_NAME="${client_input:-$(hostname)}"
+    
+    # Save configuration
+    cat > "$CONFIG_FILE" << EOF
+# Input Leap Server Configuration
+SERVER_HOST="$SERVER_HOST"
+SERVER_PORT="$SERVER_PORT"
+CLIENT_NAME="$CLIENT_NAME"
+
+# Generated on $(date)
+EOF
+    
+    log_success "Configuration saved to $CONFIG_FILE"
+    
+    # Test connection
+    if test_connection; then
+        log_success "Connection test passed!"
+        return 0
+    else
+        log_warn "Connection test failed. Please check your settings."
+        return 1
+    fi
+}
+
+# Test server connection
+test_connection() {
+    if ! load_config; then
+        log_error "No configuration found. Run 'config' first."
+        return 1
+    fi
+    
+    log_info "Testing connection to $SERVER_HOST:$SERVER_PORT..."
+    
+    if timeout 5 bash -c "</dev/tcp/$SERVER_HOST/$SERVER_PORT" 2>/dev/null; then
+        log_success "Server is reachable"
+        return 0
+    else
+        log_error "Cannot reach server at $SERVER_HOST:$SERVER_PORT"
+        return 1
+    fi
+}
+
+# Start Input Leap client
+start_client() {
+    # Check if already running
+    if is_running; then
+        log_warn "Input Leap client is already running (PID: $(cat "$PID_FILE"))"
+        return 0
+    fi
+    
+    # Load configuration
+    if ! load_config; then
+        log_error "No configuration found. Run 'config' first."
+        return 1
+    fi
+    
+    # Test connection first
+    if ! test_connection; then
+        log_error "Cannot connect to server. Check configuration and network."
+        return 1
+    fi
+    
+    # Use lock file to prevent multiple instances
+    if ! (set -C; echo $$ > "$LOCK_FILE") 2>/dev/null; then
+        log_warn "Another instance is starting. Please wait..."
+        return 1
+    fi
+    
+    trap 'rm -f "$LOCK_FILE"' EXIT
+    
+    log_info "Starting Input Leap client..."
+    log_info "Connecting to $SERVER_HOST:$SERVER_PORT as $CLIENT_NAME"
+    
+    # Start client in background
+    nohup input-leap-client \
+        --name "$CLIENT_NAME" \
+        --log "$LOG_FILE" \
+        "$SERVER_HOST:$SERVER_PORT" \
+        > /dev/null 2>&1 &
+    
+    local pid=$!
+    echo "$pid" > "$PID_FILE"
+    
+    # Wait a moment and check if it started successfully
+    sleep 2
+    if ps -p "$pid" > /dev/null 2>&1; then
+        log_success "Input Leap client started (PID: $pid)"
+        
+        # Optional desktop notification
+        if command -v notify-send &> /dev/null; then
+            notify-send "Input Leap" "Connected to $SERVER_HOST" -t 3000 2>/dev/null || true
+        fi
+        
+        rm -f "$LOCK_FILE"
+        return 0
+    else
+        log_error "Failed to start Input Leap client"
+        rm -f "$PID_FILE" "$LOCK_FILE"
+        return 1
+    fi
+}
+
+# Stop Input Leap client
+stop_client() {
+    if ! is_running; then
+        log_info "Input Leap client is not running"
+        return 0
+    fi
+    
+    local pid=$(cat "$PID_FILE")
+    log_info "Stopping Input Leap client (PID: $pid)..."
+    
+    # Graceful shutdown
+    kill "$pid" 2>/dev/null || true
+    
+    # Wait for graceful shutdown
+    local count=0
+    while ps -p "$pid" > /dev/null 2>&1 && [[ $count -lt 10 ]]; do
+        sleep 1
+        ((count++))
+    done
+    
+    # Force kill if still running
+    if ps -p "$pid" > /dev/null 2>&1; then
+        log_warn "Force killing client..."
+        kill -9 "$pid" 2>/dev/null || true
+        sleep 1
+    fi
+    
+    rm -f "$PID_FILE"
+    log_success "Input Leap client stopped"
+    
+    # Optional desktop notification
+    if command -v notify-send &> /dev/null; then
+        notify-send "Input Leap" "Disconnected" -t 3000 2>/dev/null || true
+    fi
+}
+
+# Restart client
+restart_client() {
+    log_info "Restarting Input Leap client..."
+    stop_client
+    sleep 1
+    start_client
+}
+
+# Show status
+show_status() {
+    echo -e "${BLUE}Input Leap Client Status${NC}"
+    echo "========================"
+    
+    if is_running; then
+        local pid=$(cat "$PID_FILE")
+        echo -e "Status: ${GREEN}Running${NC} (PID: $pid)"
+        
+        if load_config; then
+            echo "Server: $SERVER_HOST:$SERVER_PORT"
+            echo "Client: $CLIENT_NAME"
+        fi
+        
+        # Show process info
+        if ps -p "$pid" -o pid,ppid,cmd --no-headers 2>/dev/null; then
+            echo ""
+        fi
+    else
+        echo -e "Status: ${RED}Not running${NC}"
+    fi
+    
+    # Show recent log entries
+    echo ""
+    echo "Recent log entries:"
+    if [[ -f "$LOG_FILE" ]]; then
+        tail -5 "$LOG_FILE" | sed 's/^/  /'
+    else
+        echo "  No log file found"
+    fi
+}
+
+# Show logs
+show_logs() {
+    if [[ -f "$LOG_FILE" ]]; then
+        echo -e "${BLUE}Input Leap Client Logs${NC}"
+        echo "======================"
+        echo ""
+        
+        if command -v less &> /dev/null; then
+            less "$LOG_FILE"
+        else
+            cat "$LOG_FILE"
+        fi
+    else
+        log_warn "No log file found at $LOG_FILE"
+    fi
+}
+
+# Show usage
+usage() {
+    echo "Input Leap Manager"
+    echo ""
+    echo "Usage: $(basename "$0") [command]"
+    echo ""
+    echo "Commands:"
+    echo "  start      Start the Input Leap client"
+    echo "  stop       Stop the Input Leap client"
+    echo "  restart    Restart the Input Leap client"
+    echo "  status     Show client status"
+    echo "  config     Configure server connection"
+    echo "  test       Test server connection"
+    echo "  logs       Show client logs"
+    echo ""
+    echo "Files:"
+    echo "  Config: $CONFIG_FILE"
+    echo "  Logs:   $LOG_FILE"
+    echo "  PID:    $PID_FILE"
+}
+
+# Main execution
+main() {
+    local command="${1:-status}"
+    
+    case "$command" in
+        start)
+            start_client
+            ;;
+        stop)
+            stop_client
+            ;;
+        restart)
+            restart_client
+            ;;
+        status)
+            show_status
+            ;;
+        config)
+            configure
+            ;;
+        test)
+            test_connection
+            ;;
+        logs)
+            show_logs
+            ;;
+        -h|--help|help)
+            usage
+            ;;
+        *)
+            echo "Unknown command: $command"
+            echo ""
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+# Run if called directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

@@ -1,0 +1,60 @@
+# Input Leap Project .gitignore
+
+# Logs
+*.log
+logs/
+
+# User configuration files (these contain personal server info)
+*.conf
+config/*.conf
+
+# Runtime files
+*.pid
+*.lock
+
+# Cache directories
+cache/
+.cache/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# Temporary files
+*.tmp
+*.temp
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
