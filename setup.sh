@@ -320,22 +320,36 @@ configure_gnome_power_management() {
     log_info "  • Extending idle timeouts (prevents sleep during remote sessions)"
     log_info "  • Optimizing suspend behavior (maintains network connectivity)"
     
-    # Screen lock settings
-    gsettings set org.gnome.desktop.screensaver lock-enabled false
-    gsettings set org.gnome.desktop.screensaver lock-delay 0
+    # Screen lock settings (with error handling)
+    gsettings set org.gnome.desktop.screensaver lock-enabled false 2>/dev/null || log_warn "Could not disable screen lock"
+    gsettings set org.gnome.desktop.screensaver lock-delay 0 2>/dev/null || log_warn "Could not set lock delay"
     
     # Session idle settings
-    gsettings set org.gnome.desktop.session idle-delay 0
+    gsettings set org.gnome.desktop.session idle-delay 0 2>/dev/null || log_warn "Could not set idle delay"
     
-    # Power management settings
-    gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
-    gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800  # 30 min on battery
-    gsettings set org.gnome.settings-daemon.plugins.power power-button-action 'interactive'
+    # Power management settings (with error handling)
+    gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0 2>/dev/null || log_warn "Could not set AC sleep timeout"
+    gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800 2>/dev/null || log_warn "Could not set battery sleep timeout"
+    gsettings set org.gnome.settings-daemon.plugins.power power-button-action 'interactive' 2>/dev/null || log_warn "Could not set power button action"
     
-    # Prevent suspend when lid is closed (for laptops)
+    # Prevent suspend when lid is closed (for laptops) - with better error handling
     if [[ "$IS_LAPTOP" == true ]]; then
-        gsettings set org.gnome.settings-daemon.plugins.power lid-close-ac-action 'nothing'
-        gsettings set org.gnome.settings-daemon.plugins.power lid-close-battery-action 'suspend'
+        log_info "Laptop detected - configuring lid close behavior..."
+        
+        # Check if lid-close settings exist before trying to set them
+        if gsettings list-keys org.gnome.settings-daemon.plugins.power 2>/dev/null | grep -q "lid-close-ac-action"; then
+            gsettings set org.gnome.settings-daemon.plugins.power lid-close-ac-action 'nothing' 2>/dev/null || log_warn "Could not set lid-close-ac-action"
+            log_info "Configured lid-close on AC power: nothing"
+        else
+            log_warn "lid-close-ac-action setting not available on this GNOME version"
+        fi
+        
+        if gsettings list-keys org.gnome.settings-daemon.plugins.power 2>/dev/null | grep -q "lid-close-battery-action"; then
+            gsettings set org.gnome.settings-daemon.plugins.power lid-close-battery-action 'suspend' 2>/dev/null || log_warn "Could not set lid-close-battery-action"
+            log_info "Configured lid-close on battery: suspend"
+        else
+            log_warn "lid-close-battery-action setting not available on this GNOME version"
+        fi
     fi
     
     log_success "GNOME power management optimized for Input Leap"
@@ -367,10 +381,10 @@ setup_gnome_shell_integration() {
         gsettings set org.gnome.shell.extensions.dash-to-dock click-action 'minimize-or-overview' 2>/dev/null || true
         gsettings set org.gnome.shell.extensions.dash-to-dock scroll-action 'cycle-windows' 2>/dev/null || true
         
-        # Configure overview behavior
-        gsettings set org.gnome.mutter edge-tiling true
-        gsettings set org.gnome.mutter dynamic-workspaces true
-        gsettings set org.gnome.shell.overrides edge-tiling true
+        # Configure overview behavior (with error handling)
+        gsettings set org.gnome.mutter edge-tiling true 2>/dev/null || log_warn "Could not enable edge tiling"
+        gsettings set org.gnome.mutter dynamic-workspaces true 2>/dev/null || log_warn "Could not enable dynamic workspaces"
+        gsettings set org.gnome.shell.overrides edge-tiling true 2>/dev/null || log_warn "Could not set shell overrides"
         
         log_success "GNOME Shell integration configured"
     else
@@ -386,24 +400,25 @@ configure_gnome_accessibility() {
     log_info "Enabling GNOME accessibility features for better Input Leap support"
     
     # Enable accessibility bus (required for some Input Leap features)
-    gsettings set org.gnome.desktop.interface toolkit-accessibility true
+    gsettings set org.gnome.desktop.interface toolkit-accessibility true 2>/dev/null || log_warn "Could not enable toolkit accessibility"
     
-    # Configure mouse/pointer settings
-    gsettings set org.gnome.desktop.peripherals.mouse natural-scroll false
-    gsettings set org.gnome.desktop.peripherals.mouse speed 0.0
-    gsettings set org.gnome.desktop.peripherals.mouse accel-profile 'default'
+    # Configure mouse/pointer settings (with error handling)
+    gsettings set org.gnome.desktop.peripherals.mouse natural-scroll false 2>/dev/null || log_warn "Could not configure mouse natural-scroll"
+    gsettings set org.gnome.desktop.peripherals.mouse speed 0.0 2>/dev/null || log_warn "Could not configure mouse speed"
+    gsettings set org.gnome.desktop.peripherals.mouse accel-profile 'default' 2>/dev/null || log_warn "Could not configure mouse acceleration"
     
     # Configure touchpad (for laptops)
     if [[ "$IS_LAPTOP" == true ]]; then
-        gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true
-        gsettings set org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true
-        gsettings set org.gnome.desktop.peripherals.touchpad natural-scroll true
+        log_info "Configuring touchpad settings for laptop..."
+        gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true 2>/dev/null || log_warn "Could not enable tap-to-click"
+        gsettings set org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true 2>/dev/null || log_warn "Could not enable two-finger scrolling"
+        gsettings set org.gnome.desktop.peripherals.touchpad natural-scroll true 2>/dev/null || log_warn "Could not enable natural scroll"
     fi
     
     # Configure keyboard settings
-    gsettings set org.gnome.desktop.peripherals.keyboard repeat true
-    gsettings set org.gnome.desktop.peripherals.keyboard delay 250
-    gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 30
+    gsettings set org.gnome.desktop.peripherals.keyboard repeat true 2>/dev/null || log_warn "Could not enable key repeat"
+    gsettings set org.gnome.desktop.peripherals.keyboard delay 250 2>/dev/null || log_warn "Could not set keyboard delay"
+    gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 30 2>/dev/null || log_warn "Could not set keyboard repeat interval"
     
     log_success "GNOME accessibility configured for Input Leap"
 }
