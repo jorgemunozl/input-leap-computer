@@ -2,7 +2,61 @@
 
 **Turn on your client and Input Leap is ready!**
 
-Complete automation for Input Leap client setup and management. One command sets up everything you need for seamless mouse and keyboard sharing.
+Complete automation for Input Leap **CLIENT** setup and management. One command sets up everything you need for seamless mouse and keyboard sharing.
+
+## 🎯 **What This Project Does**
+
+**This is a CLIENT setup script** - it prepares the machine that will **receive** mouse/keyboard control from another computer.
+
+### **📱 You Need TWO Machines:**
+1. **🖥️ SERVER** = Your main computer (has the physical mouse/keyboard)
+2. **💻 CLIENT** = Secondary computer (controlled remotely) ← **This script sets up the CLIENT**
+
+### **🔄 How Input Leap Works:**
+```
+┌─────────────────┐    Network    ┌─────────────────┐
+│   SERVER        │◄──────────────┤   CLIENT        │
+│                 │               │                 │
+│ 🖱️ Mouse        │               │ (Controlled)    │
+│ ⌨️ Keyboard     │               │                 │
+│ 🖥️ Main Screen  │               │ 📺 Extra Screen │
+└─────────────────┘               └─────────────────┘
+     (Controls)                       (Receives)
+```
+
+**Move your mouse to the edge** → Control switches to the client machine!  
+**Move back** → Control returns to your server machine!
+
+## 📋 **Complete Setup Workflow**
+
+### **Step 1: Set Up This Machine (Client)**
+```bash
+cd input-leap
+./install                    # Run our setup script
+leap network static          # Configure static IP (recommended)
+```
+
+### **Step 2: Set Up Your Main Computer (Server)**
+```bash
+# On your main computer:
+sudo pacman -S input-leap    # Install Input Leap server
+input-leap-server --config  # Configure in GUI
+# Add client IP: 169.254.135.230 (if using static IP)
+# Set screen position (left/right/top/bottom)
+# Start the server
+```
+
+### **Step 3: Connect!**
+```bash
+# On this machine (client):
+leap start                   # Connect to server
+leap status                  # Check connection
+```
+
+### **Step 4: Use It!**
+- Move mouse to screen edge → control switches to client
+- Move back → control returns to server
+- Keyboard follows mouse automatically! 🎉
 
 ## 🤗 For Complete Beginners
 
@@ -93,6 +147,43 @@ Enter Input Leap server IP/hostname: desktop-pc:24800
 
 **For Ubuntu users**: Similar automation with Ubuntu-specific optimizations.
 
+## 🖥️ **Server Setup (Your Main Computer)**
+
+**⚠️ IMPORTANT:** This script only sets up the CLIENT. You also need to configure the SERVER machine!
+
+### **On Your Main Computer (Server):**
+1. **Install Input Leap Server**:
+   - **Arch Linux**: `sudo pacman -S input-leap` 
+   - **Ubuntu**: `sudo apt install input-leap`
+   - **Other systems**: Download from [Input Leap releases](https://github.com/input-leap/input-leap/releases)
+
+2. **Configure Server**:
+   ```bash
+   # Start the server GUI
+   input-leap-server --config
+   
+   # Or run from applications menu: "Input Leap Server"
+   ```
+
+3. **Add This Client**:
+   - In the server GUI, add your client machine
+   - Use the client's hostname or IP address
+   - Set up screen arrangement (left/right/top/bottom)
+
+4. **Start Server**:
+   ```bash
+   input-leap-server --config /path/to/config.conf
+   ```
+
+### **🔧 Quick Server Setup:**
+```bash
+# On your main computer (server):
+sudo pacman -S input-leap                    # Install server
+input-leap-server --config                   # Configure clients
+# Add your client machine's IP in the GUI
+# Start the server
+```
+
 ## 🏗️ **Why Arch Linux Gets the Best Experience**
 
 This project is **optimized for Arch Linux** because:
@@ -149,6 +240,7 @@ leap net static         # Same as leap network static
 
 ## 🛠️ Troubleshooting
 
+### **🖱️ Client Commands (This Machine)**
 ```bash
 # Check status
 leap status
@@ -164,6 +256,21 @@ leap restart
 
 # Change server settings
 leap config
+```
+
+### **🖥️ Server Commands (Your Main Computer)**
+```bash
+# Check if server is running
+ps aux | grep input-leap-server
+
+# Start server manually
+input-leap-server --config /path/to/config.conf
+
+# View server logs
+journalctl -u input-leap-server
+
+# Configure server GUI
+input-leap-server --config
 ```
 
 ### 🌐 Network Issues

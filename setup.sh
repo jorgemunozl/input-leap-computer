@@ -55,7 +55,7 @@ check_environment() {
     
     # Check if basic commands exist
     local missing_commands=()
-    for cmd in "curl" "wget" "git"; do
+    for cmd in "curl" "wget" "git" "hostname" "ip" "systemctl"; do
         if ! command -v "$cmd" &> /dev/null; then
             missing_commands+=("$cmd")
         fi
@@ -64,8 +64,46 @@ check_environment() {
     if [[ ${#missing_commands[@]} -gt 0 ]]; then
         echo -e "${RED}❌ ERROR: Missing required commands: ${missing_commands[*]}${NC}"
         echo -e "${YELLOW}💡 TIP: Install them first:${NC}"
-        echo -e "    ${CYAN}sudo pacman -S curl wget git${NC}"
-        exit 1
+        
+        # Provide specific package recommendations
+        local packages_needed=()
+        for cmd in "${missing_commands[@]}"; do
+            case "$cmd" in
+                "hostname") packages_needed+=("inetutils") ;;
+                "curl") packages_needed+=("curl") ;;
+                "wget") packages_needed+=("wget") ;;
+                "git") packages_needed+=("git") ;;
+                "ip") packages_needed+=("iproute2") ;;
+                "systemctl") packages_needed+=("systemd") ;;
+                *) packages_needed+=("$cmd") ;;
+            esac
+        done
+        
+        # Remove duplicates
+        local unique_packages=($(printf "%s\n" "${packages_needed[@]}" | sort -u))
+        
+        echo -e "    ${CYAN}sudo pacman -S ${unique_packages[*]}${NC}"
+        echo ""
+        echo -e "${BLUE}🤖 Want me to install these automatically? [Y/n]${NC} "
+        read -r auto_install
+        
+        case "$auto_install" in
+            [nN]|[nN][oO])
+                echo -e "${YELLOW}👋 Please install the missing packages and run the script again.${NC}"
+                exit 1
+                ;;
+            *)
+                echo -e "${GREEN}🚀 Installing missing packages...${NC}"
+                if sudo pacman -S --needed --noconfirm "${unique_packages[@]}"; then
+                    echo -e "${GREEN}✅ Successfully installed missing packages!${NC}"
+                    echo -e "${BLUE}🔄 Continuing with setup...${NC}"
+                    echo ""
+                else
+                    echo -e "${RED}❌ Failed to install packages. Please install manually and try again.${NC}"
+                    exit 1
+                fi
+                ;;
+        esac
     fi
 }
 

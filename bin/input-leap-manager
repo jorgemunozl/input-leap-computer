@@ -22,6 +22,19 @@ readonly NC='\033[0m'
 # Ensure directories exist
 mkdir -p "$(dirname "$CONFIG_FILE")" "$(dirname "$LOG_FILE")" "$(dirname "$PID_FILE")"
 
+# Safe hostname function with fallbacks
+get_hostname() {
+    if command -v hostname &> /dev/null; then
+        hostname 2>/dev/null || echo "input-leap-client"
+    elif [[ -r /etc/hostname ]]; then
+        cat /etc/hostname 2>/dev/null || echo "input-leap-client"
+    elif [[ -n "${HOSTNAME:-}" ]]; then
+        echo "$HOSTNAME"
+    else
+        echo "input-leap-client"
+    fi
+}
+
 # Fool-proof environment checks
 check_prerequisites() {
     local errors=()
@@ -130,7 +143,7 @@ load_config() {
     
     # Set defaults
     SERVER_PORT="${SERVER_PORT:-24800}"
-    CLIENT_NAME="${CLIENT_NAME:-$(hostname)}"
+    CLIENT_NAME="${CLIENT_NAME:-$(get_hostname)}"
     
     return 0
 }
@@ -174,9 +187,11 @@ configure() {
     fi
     
     # Get client name (default to hostname)
-    echo -n "Enter client name [$(hostname)]: "
+    local current_hostname
+    current_hostname=$(get_hostname)
+    echo -n "Enter client name [$current_hostname]: "
     read -r client_input
-    CLIENT_NAME="${client_input:-$(hostname)}"
+    CLIENT_NAME="${client_input:-$current_hostname}"
     
     # Save configuration
     cat > "$CONFIG_FILE" << EOF
