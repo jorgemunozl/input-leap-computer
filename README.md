@@ -6,12 +6,13 @@ Complete automation for Input Leap client setup and management. One command sets
 
 ## 🚀 Quick Setup
 
-### **1. Choose Your System**
+### **Arch Linux (Primary Focus)**
 ```bash
-# Arch Linux
 ./setup.sh
+```
 
-# Ubuntu/Debian  
+### **Ubuntu/Debian (Also Supported)**  
+```bash
 ./setup-ubuntu.sh
 ```
 
@@ -31,12 +32,15 @@ Enter Input Leap server IP/hostname: desktop-pc:24800
 ```
 
 ### **3. Done!**
-The script automatically:
-- Detects your system (desktop environment, laptop/desktop)
-- Installs Input Leap (if needed)
-- Configures everything
-- Sets up auto-start
+**For Arch Linux users**: The script automatically detects and optimizes everything:
+- Detects your system (GNOME/KDE/XFCE, laptop/desktop)
+- Installs Input Leap (official repos + AUR fallback)
+- **Automatically applies GNOME optimizations** (no questions asked!)
+- Sets up auto-start on login
+- Configures network interfaces seamlessly
 - Tests the connection
+
+**For Ubuntu users**: Similar automation with Ubuntu-specific optimizations.
 
 ## 💻 Usage
 

@@ -270,39 +270,31 @@ backup_gnome_settings() {
 configure_gnome_power_management() {
     log_info "Configuring GNOME power management for Input Leap..."
     
-    echo ""
-    echo "GNOME Power Management Configuration:"
-    echo "Input Leap works best with optimized power settings."
-    echo ""
-    echo "Recommended optimizations:"
-    echo "1. Disable automatic screen lock (prevents interruption during remote control)"
-    echo "2. Extend idle timeouts (prevents sleep during remote sessions)"
-    echo "3. Optimize suspend behavior (maintains network connectivity)"
-    echo ""
-    echo -n "Apply GNOME power optimizations? (Y/n): "
-    read -r apply_power_opts
+    # Automatically apply Input Leap optimizations
+    log_info "Applying Input Leap power optimizations:"
+    log_info "  • Disabling screen lock (prevents interruption during remote control)"
+    log_info "  • Extending idle timeouts (prevents sleep during remote sessions)"
+    log_info "  • Optimizing suspend behavior (maintains network connectivity)"
     
-    if [[ ! "$apply_power_opts" =~ ^[Nn]$ ]]; then
-        # Screen lock settings
-        gsettings set org.gnome.desktop.screensaver lock-enabled false
-        gsettings set org.gnome.desktop.screensaver lock-delay 0
-        
-        # Session idle settings
-        gsettings set org.gnome.desktop.session idle-delay 0
-        
-        # Power management settings
-        gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
-        gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800  # 30 min on battery
-        gsettings set org.gnome.settings-daemon.plugins.power power-button-action 'interactive'
-        
-        # Prevent suspend when lid is closed (for laptops)
-        if [[ "$IS_LAPTOP" == true ]]; then
-            gsettings set org.gnome.settings-daemon.plugins.power lid-close-ac-action 'nothing'
-            gsettings set org.gnome.settings-daemon.plugins.power lid-close-battery-action 'suspend'
-        fi
-        
-        log_success "GNOME power management optimized for Input Leap"
+    # Screen lock settings
+    gsettings set org.gnome.desktop.screensaver lock-enabled false
+    gsettings set org.gnome.desktop.screensaver lock-delay 0
+    
+    # Session idle settings
+    gsettings set org.gnome.desktop.session idle-delay 0
+    
+    # Power management settings
+    gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0
+    gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-timeout 1800  # 30 min on battery
+    gsettings set org.gnome.settings-daemon.plugins.power power-button-action 'interactive'
+    
+    # Prevent suspend when lid is closed (for laptops)
+    if [[ "$IS_LAPTOP" == true ]]; then
+        gsettings set org.gnome.settings-daemon.plugins.power lid-close-ac-action 'nothing'
+        gsettings set org.gnome.settings-daemon.plugins.power lid-close-battery-action 'suspend'
     fi
+    
+    log_success "GNOME power management optimized for Input Leap"
 }
 
 # Setup GNOME Shell integration
@@ -344,35 +336,32 @@ setup_gnome_shell_integration() {
 
 # Configure GNOME accessibility for better Input Leap support
 configure_gnome_accessibility() {
-    log_info "Configuring GNOME accessibility settings..."
+    log_info "Configuring GNOME accessibility settings for Input Leap..."
     
-    echo ""
-    echo -n "Enable GNOME accessibility features for better Input Leap support? (Y/n): "
-    read -r enable_a11y
+    # Automatically enable accessibility features that improve Input Leap compatibility
+    log_info "Enabling GNOME accessibility features for better Input Leap support"
     
-    if [[ ! "$enable_a11y" =~ ^[Nn]$ ]]; then
-        # Enable accessibility bus (required for some Input Leap features)
-        gsettings set org.gnome.desktop.interface toolkit-accessibility true
-        
-        # Configure mouse/pointer settings
-        gsettings set org.gnome.desktop.peripherals.mouse natural-scroll false
-        gsettings set org.gnome.desktop.peripherals.mouse speed 0.0
-        gsettings set org.gnome.desktop.peripherals.mouse accel-profile 'default'
-        
-        # Configure touchpad (for laptops)
-        if [[ "$IS_LAPTOP" == true ]]; then
-            gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true
-            gsettings set org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true
-            gsettings set org.gnome.desktop.peripherals.touchpad natural-scroll true
-        fi
-        
-        # Configure keyboard settings
-        gsettings set org.gnome.desktop.peripherals.keyboard repeat true
-        gsettings set org.gnome.desktop.peripherals.keyboard delay 250
-        gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 30
-        
-        log_success "GNOME accessibility configured for Input Leap"
+    # Enable accessibility bus (required for some Input Leap features)
+    gsettings set org.gnome.desktop.interface toolkit-accessibility true
+    
+    # Configure mouse/pointer settings
+    gsettings set org.gnome.desktop.peripherals.mouse natural-scroll false
+    gsettings set org.gnome.desktop.peripherals.mouse speed 0.0
+    gsettings set org.gnome.desktop.peripherals.mouse accel-profile 'default'
+    
+    # Configure touchpad (for laptops)
+    if [[ "$IS_LAPTOP" == true ]]; then
+        gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true
+        gsettings set org.gnome.desktop.peripherals.touchpad two-finger-scrolling-enabled true
+        gsettings set org.gnome.desktop.peripherals.touchpad natural-scroll true
     fi
+    
+    # Configure keyboard settings
+    gsettings set org.gnome.desktop.peripherals.keyboard repeat true
+    gsettings set org.gnome.desktop.peripherals.keyboard delay 250
+    gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 30
+    
+    log_success "GNOME accessibility configured for Input Leap"
 }
 
 # Setup GNOME notifications for Input Leap
@@ -625,19 +614,14 @@ enable_autostart() {
     echo ""
     echo -e "${PURPLE}🚀 Setup Complete! 🚀${NC}"
     echo ""
-    echo "Would you like to enable auto-start on login? (y/N)"
-    read -r response
     
-    if [[ "$response" =~ ^[Yy]$ ]]; then
-        systemctl --user enable input-leap.service
-        log_success "Auto-start enabled"
-        echo ""
-        echo -e "${GREEN}✨ Perfect! Input Leap will now start automatically when you log in.${NC}"
-    else
-        echo ""
-        echo "You can enable auto-start later with:"
-        echo -e "${CYAN}  systemctl --user enable input-leap.service${NC}"
-    fi
+    # Automatically enable auto-start - it's what most users want
+    log_info "Enabling auto-start on login (systemd user service)..."
+    systemctl --user enable input-leap.service
+    log_success "Auto-start enabled"
+    echo ""
+    echo -e "${GREEN}✨ Perfect! Input Leap will now start automatically when you log in.${NC}"
+    echo -e "${CYAN}To disable: systemctl --user disable input-leap.service${NC}"
 }
 
 # Show usage information
@@ -662,6 +646,16 @@ show_usage() {
 main() {
     print_banner
     
+    log_info "🏗️  Arch Linux Input Leap Auto-Setup Started"
+    log_info "📋 This script will automatically:"
+    log_info "   • Detect your system (GNOME/KDE/XFCE, laptop/desktop)"
+    log_info "   • Install Input Leap (repos + AUR fallback)"
+    log_info "   • Apply GNOME optimizations (if detected)"
+    log_info "   • Configure network interfaces"
+    log_info "   • Set up auto-start and systemd service"
+    log_info "   • Test everything works"
+    echo ""
+    
     check_root
     detect_system
     check_existing_installation
@@ -675,7 +669,9 @@ main() {
     enable_autostart
     show_usage
     
-    echo -e "${GREEN}🎉 Input Leap is ready! Turn on your client and enjoy seamless mouse/keyboard sharing! 🎉${NC}"
+    echo ""
+    echo -e "${GREEN}🎉 Arch Linux Input Leap Setup Complete! 🎉${NC}"
+    echo -e "${CYAN}Turn on your client and enjoy seamless mouse/keyboard sharing!${NC}"
 }
 
 # Run if called directly

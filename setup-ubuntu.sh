@@ -266,25 +266,21 @@ backup_gnome_settings_ubuntu() {
 configure_gnome_power_management_ubuntu() {
     log_info "Configuring GNOME power management for Ubuntu..."
     
-    echo ""
-    echo "Ubuntu GNOME Power Management Configuration:"
-    echo "Input Leap works best with optimized power settings."
-    echo ""
-    echo -n "Apply Ubuntu GNOME power optimizations? (Y/n): "
-    read -r apply_power_opts
+    # Automatically apply Input Leap optimizations for Ubuntu
+    log_info "Applying Ubuntu GNOME power optimizations for Input Leap:"
+    log_info "  • Disabling screen lock (prevents interruption during remote control)"
+    log_info "  • Extending idle timeouts (prevents sleep during remote sessions)"
     
-    if [[ ! "$apply_power_opts" =~ ^[Nn]$ ]]; then
-        # Screen lock settings
-        gsettings set org.gnome.desktop.screensaver lock-enabled false
-        gsettings set org.gnome.desktop.session idle-delay 0
-        
-        # Ubuntu-specific power settings
-        if command -v ubuntu-drivers &> /dev/null; then
-            log_info "Detected Ubuntu drivers - optimizing power management"
-        fi
-        
-        log_success "Ubuntu GNOME power management optimized for Input Leap"
+    # Screen lock settings
+    gsettings set org.gnome.desktop.screensaver lock-enabled false
+    gsettings set org.gnome.desktop.session idle-delay 0
+    
+    # Ubuntu-specific power settings
+    if command -v ubuntu-drivers &> /dev/null; then
+        log_info "Detected Ubuntu drivers - optimizing power management"
     fi
+    
+    log_success "Ubuntu GNOME power management optimized for Input Leap"
 }
 
 # Setup GNOME notifications for Ubuntu
