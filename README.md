@@ -1,4 +1,10 @@
-# 🖱️ ## ✨ Features
+# 🖱️ Input Leap Auto-Setup
+
+**Turn on your client and Input Leap is ready!**
+
+A complete, robust automation system for Input Leap client setup and management. One command sets up everything you need for seamless mouse and keyboard sharing between your devices.
+
+## ✨ Features
 
 - 🚀 **One-command setup** - Everything configured automatically
 - 🔄 **Auto-connection** - Connects automatically on startup/login
@@ -8,40 +14,27 @@
 - 📱 **Desktop notifications** - Visual feedback for connection status
 - 🎯 **Zero configuration** - Works out of the box after setup
 - 🔒 **Safe installation** - Backup and rollback capabilities
-- 🖥️ **GNOME laptop support** - Optimized for GNOME desktop environments
+- 🖥️ **Complete GNOME support** - Full integration with GNOME desktop environments
 - 🔋 **Laptop power management** - Smart handling of auto-lock and power settings
 - 📦 **Pre-installation checks** - Detects existing installations safely
+- ⚡ **Xorg optimization** - Perfect compatibility with X11 sessions
 
 ## 🖥️ Supported Systems
 
-### ✅ **Fully Supported**
+### ✅ **Fully Supported & Optimized**
 - **Arch Linux** (official repos + AUR)
-  - GNOME desktop environments
-  - KDE, XFCE, and other DEs
-  - Laptop and desktop systems
-  - Wayland and X11 sessions
+  - 🖥️ **GNOME desktop environments** - Complete integration with Xorg
+  - 🔧 **KDE, XFCE, and other DEs** - Universal compatibility
+  - 💻 **Laptop and desktop systems** - Power management optimization
+  - 🎯 **Wayland and X11 sessions** - Automatic detection and optimization
+  - ⚡ **Xorg services** - Perfect X11 compatibility and backend forcing
 
 ### 🚧 **Planned Support**
-- **Ubuntu/Debian** - Coming soon!
+- **Ubuntu/Debian** - Coming soon with GNOME optimizations!
 - **Fedora** - Under consideration
 - **Other distributions** - Community contributions welcome
 
-> **Note**: Currently optimized for Arch Linux. Ubuntu support is planned for future releases. Auto-Setup
-
-**Turn on your client and Input Leap is ready!**
-
-A complete, robust automation system for Input Leap client setup and management. One command sets up everything you need for seamless mouse and keyboard sharing between your devices.
-
-## ✨ Features
-
-- � **One-command setup** - Everything configured automatically
-- 🔄 **Auto-connection** - Connects automatically on startup/login
-- 🛡️ **Robust error handling** - Graceful failure recovery
-- 📊 **Smart status monitoring** - Real-time connection health checks
-- 🔧 **Easy management** - Simple commands for all operations
-- 📱 **Desktop notifications** - Visual feedback for connection status
-- 🎯 **Zero configuration** - Works out of the box after setup
-- 🔒 **Safe installation** - Backup and rollback capabilities
+> **Note**: Currently provides enterprise-grade support for Arch Linux with complete GNOME/Xorg integration. Ubuntu support is planned for future releases.
 
 ## 🚀 Quick Start
 
@@ -62,11 +55,33 @@ That's it! The script will:
 1. **Detect your system** (Arch Linux, GNOME, laptop/desktop)
 2. **Check existing installations** (gives options to keep/reinstall/configure)
 3. **Install Input Leap** (from official repos or AUR)
-4. **Configure GNOME optimizations** (if applicable)
+4. **Configure GNOME optimizations** (complete Xorg integration)
 5. **Set up server connection** (interactive configuration)
 6. **Enable auto-start** (bashrc + systemd service)
 7. **Test everything works** (connection validation)
 8. **Create convenient commands** (`leap` command)
+
+## 🖥️ **GNOME + Xorg Excellence**
+
+This project provides **enterprise-grade GNOME integration** with complete Xorg optimization:
+
+### ⚡ **Automatic Xorg Optimization**
+- **Smart backend detection** - Automatically prefers X11 over Wayland
+- **Environment variable configuration** - Sets `GDK_BACKEND=x11` for stability
+- **Display management** - Proper DISPLAY and XDG_RUNTIME_DIR handling
+- **Session type awareness** - Adapts behavior for Wayland vs X11 sessions
+
+### 🔧 **GNOME Services Integration**
+- **Power management** - Intelligent auto-lock and idle timeout handling
+- **Desktop notifications** - Native GNOME notification system integration
+- **Shell extensions** - Compatible with GNOME extensions ecosystem
+- **Settings synchronization** - Backs up and restores GNOME settings safely
+
+### 💻 **Laptop-Specific Features**
+- **Battery detection** - Automatically detects laptop vs desktop systems
+- **Power optimization** - Prevents sleep/suspend during remote sessions
+- **Screen lock management** - Optional disabling for uninterrupted remote control
+- **Thermal awareness** - Respects laptop power profiles
 
 ## 🎮 Usage
 
@@ -164,12 +179,15 @@ The `setup.sh` script handles everything automatically:
 - Installs `yay` AUR helper automatically if required
 - Validates installation before proceeding
 
-### **GNOME Laptop Optimizations:**
-- Battery/power supply detection
-- Optional auto-lock disabling for remote control
-- X11 backend forcing for better compatibility
-- GNOME shell extensions integration
-- Desktop notifications setup
+### **GNOME + Xorg Optimizations:**
+- 🔍 **Automatic GNOME detection** - Detects GNOME desktop environment
+- 🔋 **Battery/power supply detection** - Smart laptop optimization
+- 🔒 **Optional auto-lock disabling** - For seamless remote control
+- ⚡ **X11 backend forcing** - Ensures perfect Xorg compatibility
+- 🖥️ **Display environment configuration** - Proper DISPLAY and XDG variables
+- 🔧 **GNOME shell extensions integration** - Native desktop integration
+- 📱 **Desktop notifications setup** - Visual feedback system
+- 🎯 **Wayland fallback handling** - Automatic X11 preference for stability
 
 ### **System Integration:**
 - Creates systemd user service with proper dependencies
@@ -245,22 +263,42 @@ leap start
 
 ### GNOME-Specific Issues
 
-#### Wayland Compatibility
+#### Wayland vs Xorg Optimization
 ```bash
-# Check if using Wayland
+# Check current session type
 echo $XDG_SESSION_TYPE
 
-# Force X11 for better compatibility (if needed)
+# View automatic Xorg optimization (built-in)
+leap status  # Shows detected desktop environment
+
+# Manual Xorg forcing (if needed)
 export GDK_BACKEND=x11
 leap restart
 ```
 
-#### Screen Lock Problems
+#### Complete GNOME Services Integration
 ```bash
-# Run GNOME optimizations
+# View GNOME-specific optimizations applied
+leap logs | grep -i gnome
+
+# Check power management settings
+gsettings get org.gnome.desktop.screensaver lock-enabled
+gsettings get org.gnome.desktop.session idle-delay
+
+# Verify Xorg backend configuration
+echo $GDK_BACKEND
+```
+
+#### Screen Lock & Power Management
+```bash
+# Run full GNOME optimizations
 ./setup.sh
 # Choose option 1 if Input Leap already installed
 # Select 'y' for auto-lock disabling when prompted
+
+# Manual power management (if needed)
+gsettings set org.gnome.desktop.screensaver lock-enabled false
+gsettings set org.gnome.desktop.session idle-delay 0
 ```
 
 ## 🎯 Future Plans
@@ -269,10 +307,11 @@ leap restart
 We're working on Ubuntu/Debian support with these planned features:
 
 - **APT package management** with PPA support
-- **Ubuntu-specific optimizations** for Unity/GNOME
+- **Ubuntu GNOME optimizations** - Same level of GNOME/Xorg integration
 - **Snap package detection** and handling
 - **WSL compatibility** for Windows users
-- **Different service management** (systemd vs other init systems)
+- **Unity desktop support** - Complete desktop environment coverage
+- **Xorg service management** - Consistent X11 optimization across distributions
 
 ### Fedora & Other Distributions
 - **DNF/YUM package management**
