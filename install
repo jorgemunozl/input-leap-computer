@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Quick Input Leap setup for Arch Linux
+# Just run: ./install
+
+echo "🚀 Quick Input Leap Setup for Arch Linux"
+echo ""
+
+# Check if we're on Arch
+if [[ ! -f /etc/arch-release ]]; then
+    echo "❌ This script is optimized for Arch Linux."
+    echo "Use ./setup-ubuntu.sh for Ubuntu/Debian systems."
+    exit 1
+fi
+
+# Run the main setup
+exec ./setup.sh

@@ -6,10 +6,15 @@ Complete automation for Input Leap client setup and management. One command sets
 
 ## 🚀 Quick Setup
 
-### **Arch Linux (Primary Focus)**
+### **Arch Linux (Primary Focus)** ⚡
 ```bash
+# Super simple way
+./install
+
+# Or traditional way  
 ./setup.sh
 ```
+**Zero configuration needed!** Automatically detects and optimizes everything.
 
 ### **Ubuntu/Debian (Also Supported)**  
 ```bash
@@ -41,6 +46,15 @@ Enter Input Leap server IP/hostname: desktop-pc:24800
 - Tests the connection
 
 **For Ubuntu users**: Similar automation with Ubuntu-specific optimizations.
+
+## 🏗️ **Why Arch Linux Gets the Best Experience**
+
+This project is **optimized for Arch Linux** because:
+- **AUR integration** - Falls back to `input-leap-git` automatically
+- **GNOME detection** - Automatically optimizes screen lock, power management
+- **Zero prompts** - No annoying questions, just works
+- **Network magic** - Seamless Ethernet detection and configuration
+- **systemd perfection** - Auto-configured user services
 
 ## 💻 Usage
 

@@ -30,9 +30,10 @@ readonly USER_SYSTEMD="$HOME/.config/systemd/user"
 print_banner() {
     echo -e "${CYAN}"
     echo "╔═══════════════════════════════════════════════════════════════╗"
-    echo "║                    🖱️  INPUT LEAP SETUP 🖱️                     ║"
+    echo "║                🖱️  ARCH LINUX INPUT LEAP SETUP 🖱️                ║"
     echo "║                                                               ║"
-    echo "║           Turn on your client and Input Leap is ready!       ║"
+    echo "║         Streamlined automation for Arch Linux users          ║"
+    echo "║            Turn on your client and you're ready!             ║"
     echo "╚═══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
