@@ -1,4 +1,32 @@
-# 🖱️ Input Leap Auto-Setup
+# 🖱️ ## ✨ Features
+
+- 🚀 **One-command setup** - Everything configured automatically
+- 🔄 **Auto-connection** - Connects automatically on startup/login
+- 🛡️ **Robust error handling** - Graceful failure recovery
+- 📊 **Smart status monitoring** - Real-time connection health checks
+- 🔧 **Easy management** - Simple commands for all operations
+- 📱 **Desktop notifications** - Visual feedback for connection status
+- 🎯 **Zero configuration** - Works out of the box after setup
+- 🔒 **Safe installation** - Backup and rollback capabilities
+- 🖥️ **GNOME laptop support** - Optimized for GNOME desktop environments
+- 🔋 **Laptop power management** - Smart handling of auto-lock and power settings
+- 📦 **Pre-installation checks** - Detects existing installations safely
+
+## 🖥️ Supported Systems
+
+### ✅ **Fully Supported**
+- **Arch Linux** (official repos + AUR)
+  - GNOME desktop environments
+  - KDE, XFCE, and other DEs
+  - Laptop and desktop systems
+  - Wayland and X11 sessions
+
+### 🚧 **Planned Support**
+- **Ubuntu/Debian** - Coming soon!
+- **Fedora** - Under consideration
+- **Other distributions** - Community contributions welcome
+
+> **Note**: Currently optimized for Arch Linux. Ubuntu support is planned for future releases. Auto-Setup
 
 **Turn on your client and Input Leap is ready!**
 
@@ -17,18 +45,28 @@ A complete, robust automation system for Input Leap client setup and management.
 
 ## 🚀 Quick Start
 
-**One command to rule them all:**
-
+### **Arch Linux (Fully Supported)**
 ```bash
 ./setup.sh
 ```
 
+### **Ubuntu/Debian (Coming Soon)**
+```bash
+./setup-ubuntu.sh  # Placeholder - shows planned features
+```
+
+### **Other Distributions**
+Check our [contribution guide](#-contributing) to help add support for your distribution!
+
 That's it! The script will:
-1. Install Input Leap (from official repos or AUR)
-2. Configure your server connection
-3. Set up auto-start on login
-4. Test everything works
-5. Create convenient `leap` command
+1. **Detect your system** (Arch Linux, GNOME, laptop/desktop)
+2. **Check existing installations** (gives options to keep/reinstall/configure)
+3. **Install Input Leap** (from official repos or AUR)
+4. **Configure GNOME optimizations** (if applicable)
+5. **Set up server connection** (interactive configuration)
+6. **Enable auto-start** (bashrc + systemd service)
+7. **Test everything works** (connection validation)
+8. **Create convenient commands** (`leap` command)
 
 ## 🎮 Usage
 
@@ -76,7 +114,8 @@ The script automatically uses your hostname as the client name, but you can cust
 
 ```
 input-leap/
-├── setup.sh                    # Main setup script - run this first!
+├── setup.sh                    # Main setup script for Arch Linux
+├── setup-ubuntu.sh             # Placeholder for Ubuntu support
 ├── bin/                        # Executable scripts
 │   ├── input-leap-manager      # Core management script
 │   ├── leap                    # Simple command wrapper
@@ -88,6 +127,7 @@ input-leap/
 ├── systemd/                    # Service definitions
 │   └── input-leap.service      # Systemd service template
 ├── docs/                       # Documentation
+│   └── GNOME-LAPTOP-SUPPORT.md # GNOME-specific guide
 ├── README.md                   # This file
 └── .gitignore                  # Git ignore rules
 ```
@@ -112,20 +152,36 @@ leap test
 
 The `setup.sh` script handles everything automatically:
 
-1. **Package Installation**:
-   - Tries official Arch repository first
-   - Falls back to AUR (`input-leap-git`) if needed
-   - Installs `yay` AUR helper if required
+### **System Detection:**
+- **Desktop Environment**: GNOME, KDE, XFCE detection
+- **System Type**: Laptop vs desktop identification  
+- **Distribution**: Arch Linux validation
+- **Existing Installations**: Smart detection and user choice
 
-2. **System Integration**:
-   - Creates systemd user service
-   - Adds `leap` command to system PATH
-   - Sets up auto-start in `.bashrc`
+### **Package Installation** (Arch Linux):
+- Tries official Arch repository first (`input-leap`)
+- Falls back to AUR (`input-leap-git`) if needed
+- Installs `yay` AUR helper automatically if required
+- Validates installation before proceeding
 
-3. **Configuration**:
-   - Interactive server setup
-   - Network connectivity validation
-   - Complete system testing
+### **GNOME Laptop Optimizations:**
+- Battery/power supply detection
+- Optional auto-lock disabling for remote control
+- X11 backend forcing for better compatibility
+- GNOME shell extensions integration
+- Desktop notifications setup
+
+### **System Integration:**
+- Creates systemd user service with proper dependencies
+- Adds `leap` command to system PATH (with fallback to ~/.local/bin)
+- Sets up auto-start in `.bashrc` with proper quoting
+- Configures environment variables for GUI applications
+
+### **Configuration & Testing:**
+- Interactive server setup with input validation
+- Network connectivity testing before connection
+- Complete system testing and health checks
+- Graceful error handling and recovery
 
 ## 🛠️ Troubleshooting
 
@@ -186,6 +242,44 @@ rm -f ~/.cache/input-leap/client.lock
 # Restart
 leap start
 ```
+
+### GNOME-Specific Issues
+
+#### Wayland Compatibility
+```bash
+# Check if using Wayland
+echo $XDG_SESSION_TYPE
+
+# Force X11 for better compatibility (if needed)
+export GDK_BACKEND=x11
+leap restart
+```
+
+#### Screen Lock Problems
+```bash
+# Run GNOME optimizations
+./setup.sh
+# Choose option 1 if Input Leap already installed
+# Select 'y' for auto-lock disabling when prompted
+```
+
+## 🎯 Future Plans
+
+### Ubuntu Support (Coming Soon!)
+We're working on Ubuntu/Debian support with these planned features:
+
+- **APT package management** with PPA support
+- **Ubuntu-specific optimizations** for Unity/GNOME
+- **Snap package detection** and handling
+- **WSL compatibility** for Windows users
+- **Different service management** (systemd vs other init systems)
+
+### Fedora & Other Distributions
+- **DNF/YUM package management**
+- **SELinux compatibility**
+- **Flatpak integration**
+
+**Want to help?** Contributions for other distributions are very welcome!
 
 ## 🚀 Contributing
 
