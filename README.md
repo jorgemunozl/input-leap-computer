@@ -4,19 +4,65 @@
 
 Complete automation for Input Leap client setup and management. One command sets up everything you need for seamless mouse and keyboard sharing.
 
+## 🤗 For Complete Beginners
+
+**Never used a terminal? No problem!** Here's what you need to know:
+
+### Step 1: Open Terminal
+- **On most systems**: Press `Ctrl + Alt + T`
+- **On GNOME**: Press `Super` key (Windows key) and type "terminal"
+- **Still can't find it?** Look for "Terminal" or "Console" in your applications menu
+
+### Step 2: Navigate to this project
+When the black window opens, type this **exactly** (copy-paste works too):
+```bash
+cd input-leap
+```
+Press **Enter**. If you get an error like "No such file", you need to download this project first!
+
+### Step 3: Run the magic command
+**For Arch users:**
+```bash
+./install
+```
+**For Ubuntu/Debian users:**
+```bash
+./setup-ubuntu.sh
+```
+Press **Enter** and follow the colorful prompts!
+
+### Step 4: Don't panic!
+- If you see lots of text scrolling - **that's normal!** ✅
+- If it asks for your password - **type it** (you won't see it, that's normal) ✅
+- If it asks for server IP - **just press Enter** (you can set it later) ✅
+- If something looks broken - **read the error message** (our scripts are helpful!) ✅
+
 ## 🚀 Quick Setup
 
+> **👶 Never used Linux terminal before?** No worries! Just copy-paste the commands below and press Enter. That's it!
+
 ### **Arch Linux (Primary Focus)** ⚡
+**Step 1:** Open a terminal (Ctrl+Alt+T) and navigate to this folder:
 ```bash
-# Super simple way
+cd input-leap
+```
+
+**Step 2:** Run ONE of these commands:
+```bash
+# ✨ Super simple way (recommended)
 ./install
 
-# Or traditional way  
+# 🔧 Traditional way (if you want to see more details)
 ./setup.sh
 ```
-**Zero configuration needed!** Automatically detects and optimizes everything.
+**Zero configuration needed!** Just press Enter when asked for your server IP - you can set it up later!
 
 ### **Ubuntu/Debian (Also Supported)**  
+**Step 1:** Open terminal (Ctrl+Alt+T) and go to the folder:
+```bash
+cd input-leap
+```
+**Step 2:** Run the setup:
 ```bash
 ./setup-ubuntu.sh
 ```
@@ -71,14 +117,28 @@ leap test       # Test connection with helpful tips
 ```bash
 # Quick network fixes
 leap network status     # 📊 Show all interfaces with IP/status  
-leap network auto       # 🔧 Auto-configure best interface
+leap network static     # 🔧 Auto-configure Ethernet with static IP (RECOMMENDED!)
+leap network auto       # 🔄 Auto-configure with DHCP
 leap network test HOST  # 🔍 Test server connectivity
 leap network check      # ✅ Check configured Input Leap server
 
+# Static IP commands (for reliable connections)
+leap network static                          # Auto-setup 169.254.135.230/16
+leap network static enxc8a362 169.254.135.230  # Custom interface & IP
+leap network static eth0 192.168.1.100 24   # Custom IP with netmask
+
 # Short version (same commands)
 leap net status         # Same as leap network status
-leap net auto           # Same as leap network auto
+leap net static         # Same as leap network static
 ```
+
+**🎯 Static IP Features (NEW!):**
+- **🔒 Fixed IP addresses** - No more DHCP changes breaking connections
+- **🚀 Link-local networking** - Works without router/DHCP (169.254.x.x range)
+- **⚡ Auto-detection** - Finds your Ethernet interface automatically
+- **💾 Persistent config** - Remembers your settings across reboots
+- **🔧 Manual override** - Set custom IPs for any interface
+- **📋 Backup safety** - Saves old config before changes
 
 **Smart Network Features:**
 - **🔍 Auto-detects Ethernet** - Prioritizes wired over WiFi

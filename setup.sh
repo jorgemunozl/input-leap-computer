@@ -26,6 +26,49 @@ readonly USER_CONFIG="$HOME/.config/input-leap"
 readonly USER_CACHE="$HOME/.cache/input-leap"
 readonly USER_SYSTEMD="$HOME/.config/systemd/user"
 
+# Fool-proof checks
+check_environment() {
+    # Check if running on Linux
+    if [[ "$(uname)" != "Linux" ]]; then
+        echo -e "${RED}❌ ERROR: This script only works on Linux!${NC}"
+        echo -e "${YELLOW}💡 TIP: If you're on Windows, try WSL2 or use a Linux virtual machine${NC}"
+        exit 1
+    fi
+    
+    # Check if we're in the right directory
+    if [[ ! -f "$PROJECT_ROOT/setup.sh" ]] || [[ ! -d "$BIN_DIR" ]]; then
+        echo -e "${RED}❌ ERROR: You're not in the input-leap directory!${NC}"
+        echo -e "${YELLOW}💡 TIP: Navigate to the input-leap folder first:${NC}"
+        echo -e "    ${CYAN}cd input-leap${NC}"
+        echo -e "    ${CYAN}./setup.sh${NC}"
+        exit 1
+    fi
+    
+    # Check if running as root (bad idea)
+    if [[ $EUID -eq 0 ]]; then
+        echo -e "${RED}❌ ERROR: Don't run this as root (sudo)!${NC}"
+        echo -e "${YELLOW}💡 TIP: Run it as your normal user:${NC}"
+        echo -e "    ${CYAN}./setup.sh${NC}"
+        echo -e "${YELLOW}    (The script will ask for sudo when needed)${NC}"
+        exit 1
+    fi
+    
+    # Check if basic commands exist
+    local missing_commands=()
+    for cmd in "curl" "wget" "git"; do
+        if ! command -v "$cmd" &> /dev/null; then
+            missing_commands+=("$cmd")
+        fi
+    done
+    
+    if [[ ${#missing_commands[@]} -gt 0 ]]; then
+        echo -e "${RED}❌ ERROR: Missing required commands: ${missing_commands[*]}${NC}"
+        echo -e "${YELLOW}💡 TIP: Install them first:${NC}"
+        echo -e "    ${CYAN}sudo pacman -S curl wget git${NC}"
+        exit 1
+    fi
+}
+
 # Banner
 print_banner() {
     echo -e "${CYAN}"
@@ -657,37 +700,40 @@ main() {
     log_info "   • Test everything works"
     echo ""
     
-    echo -e "${BLUE}[1/11]${NC} Checking permissions..."
+    echo -e "${BLUE}[1/11]${NC} Checking environment and requirements..."
+    check_environment
+    
+    echo -e "${BLUE}[2/11]${NC} Checking permissions..."
     check_root
     
-    echo -e "${BLUE}[2/11]${NC} Detecting system configuration..."
+    echo -e "${BLUE}[3/11]${NC} Detecting system configuration..."
     detect_system
     
-    echo -e "${BLUE}[3/11]${NC} Checking existing installations..."
+    echo -e "${BLUE}[4/11]${NC} Checking existing installations..."
     check_existing_installation
     
-    echo -e "${BLUE}[4/11]${NC} Creating directories..."
+    echo -e "${BLUE}[5/11]${NC} Creating directories..."
     create_directories
     
-    echo -e "${BLUE}[5/11]${NC} Installing Input Leap..."
+    echo -e "${BLUE}[6/11]${NC} Installing Input Leap..."
     install_input_leap
     
-    echo -e "${BLUE}[6/11]${NC} Setting up GNOME integration..."
+    echo -e "${BLUE}[7/11]${NC} Setting up GNOME integration..."
     setup_gnome_integration
     
-    echo -e "${BLUE}[7/11]${NC} Configuring systemd service..."
+    echo -e "${BLUE}[8/11]${NC} Configuring systemd service..."
     setup_systemd
     
-    echo -e "${BLUE}[8/11]${NC} Setting up shell integration..."
+    echo -e "${BLUE}[9/11]${NC} Setting up shell integration..."
     setup_shell_integration
     
-    echo -e "${BLUE}[9/11]${NC} Configuring server connection..."
+    echo -e "${BLUE}[10/11]${NC} Configuring server connection..."
     configure_server
     
-    echo -e "${BLUE}[10/11]${NC} Testing setup..."
+    echo -e "${BLUE}[11/11]${NC} Testing setup..."
     test_setup
     
-    echo -e "${BLUE}[11/11]${NC} Enabling auto-start..."
+    echo -e "${BLUE}[12/12]${NC} Enabling auto-start..."
     enable_autostart
     
     show_usage

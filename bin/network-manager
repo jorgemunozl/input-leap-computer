@@ -179,12 +179,192 @@ test_server_connectivity() {
     fi
 }
 
+# Function to configure static IP for Ethernet interface
+configure_static_ip() {
+    local interface="$1"
+    local static_ip="${2:-169.254.135.230}"
+    local netmask="${3:-16}"
+    
+    log "Configuring static IP for $interface..."
+    info "Setting IP: $static_ip/$netmask"
+    
+    # Backup current configuration
+    local backup_file="$CONFIG_DIR/network-backup-$(date +%Y%m%d-%H%M%S).conf"
+    {
+        echo "# Network backup for $interface at $(date)"
+        echo "# Current configuration before Input Leap static IP setup"
+        echo "INTERFACE=$interface"
+        ip addr show "$interface" 2>/dev/null || true
+        ip route show dev "$interface" 2>/dev/null || true
+    } > "$backup_file"
+    
+    log "Current configuration backed up to: $backup_file"
+    
+    # Remove existing IP addresses (but keep interface up)
+    local existing_ips
+    existing_ips=$(ip addr show "$interface" 2>/dev/null | grep 'inet ' | awk '{print $2}' || true)
+    
+    if [[ -n "$existing_ips" ]]; then
+        info "Removing existing IP addresses from $interface..."
+        while IFS= read -r ip; do
+            if [[ -n "$ip" ]]; then
+                sudo ip addr del "$ip" dev "$interface" 2>/dev/null || true
+                info "Removed IP: $ip"
+            fi
+        done <<< "$existing_ips"
+    fi
+    
+    # Bring interface up
+    if ! sudo ip link set "$interface" up; then
+        error "Failed to bring up interface $interface"
+        return 1
+    fi
+    
+    # Add static IP
+    if sudo ip addr add "$static_ip/$netmask" dev "$interface"; then
+        log "✓ Successfully configured static IP: $static_ip/$netmask on $interface"
+        
+        # Save configuration for persistence
+        {
+            echo "# Input Leap static IP configuration"
+            echo "# Generated on $(date)"
+            echo "INTERFACE=$interface"
+            echo "STATIC_IP=$static_ip"
+            echo "NETMASK=$netmask"
+            echo "CONFIGURED_DATE=$(date)"
+        } > "$NETWORK_CONFIG"
+        
+        return 0
+    else
+        error "Failed to add static IP to $interface"
+        return 1
+    fi
+}
+
+# Function to detect and configure best Ethernet interface with static IP
+auto_configure_ethernet_static() {
+    log "Auto-configuring Ethernet with static IP for Input Leap..."
+    
+    local interfaces
+    if ! interfaces=$(detect_interfaces); then
+        error "No network interfaces found!"
+        echo -e "${YELLOW}💡 This usually means:${NC}"
+        echo -e "   ${CYAN}• Network hardware is not detected${NC}"
+        echo -e "   ${CYAN}• You're running in a virtual machine without network${NC}"
+        echo -e "   ${CYAN}• Network drivers are missing${NC}"
+        echo ""
+        echo -e "${YELLOW}🔧 Try:${NC}"
+        echo -e "   ${CYAN}ip link show${NC}    - See all interfaces"
+        echo -e "   ${CYAN}lspci | grep -i network${NC}    - Check network hardware"
+        return 1
+    fi
+    
+    # Find Ethernet interfaces
+    local eth_interfaces
+    eth_interfaces=$(echo "$interfaces" | grep -E '^(eth|en)' || true)
+    
+    if [[ -z "$eth_interfaces" ]]; then
+        warn "No Ethernet interfaces found!"
+        echo -e "${YELLOW}Available interfaces:${NC}"
+        echo "$interfaces"
+        echo ""
+        echo -e "${YELLOW}💡 You can manually configure any interface:${NC}"
+        echo -e "   ${CYAN}leap network static <interface> <ip>${NC}"
+        return 1
+    fi
+    
+    log "Found Ethernet interfaces: $eth_interfaces"
+    
+    # Try to configure the first available Ethernet interface
+    local target_interface
+    target_interface=$(echo "$eth_interfaces" | head -1)
+    
+    if [[ -n "$target_interface" ]]; then
+        log "Configuring primary Ethernet interface: $target_interface"
+        
+        # Use link-local IP range for reliable peer-to-peer connection
+        local static_ip="169.254.135.230"
+        
+        if configure_static_ip "$target_interface" "$static_ip" "16"; then
+            log "✓ Successfully configured static IP on $target_interface"
+            
+            # Test the interface
+            sleep 2
+            if ip addr show "$target_interface" | grep -q "$static_ip"; then
+                log "✓ Static IP configuration verified"
+                
+                # Show the configuration
+                echo ""
+                info "📡 Ethernet interface configured:"
+                printf "   Interface: ${CYAN}%s${NC}\n" "$target_interface"
+                printf "   Static IP: ${GREEN}%s/16${NC}\n" "$static_ip"
+                printf "   Network:   ${BLUE}169.254.0.0/16${NC} (Link-Local)\n"
+                echo ""
+                echo -e "${YELLOW}💡 Configure your server to use IP in range: 169.254.x.x${NC}"
+                echo -e "${YELLOW}   Suggested server IP: 169.254.135.231${NC}"
+                
+                return 0
+            else
+                error "Static IP configuration failed verification"
+                return 1
+            fi
+        else
+            error "Failed to configure static IP on $target_interface"
+            return 1
+        fi
+    else
+        error "No suitable Ethernet interface found"
+        return 1
+    fi
+}
+
+# Function to manually configure static IP
+manual_static_ip() {
+    local interface="$1"
+    local ip="$2"
+    local netmask="${3:-24}"
+    
+    if [[ -z "$interface" ]] || [[ -z "$ip" ]]; then
+        error "Usage: manual_static_ip <interface> <ip> [netmask]"
+        echo -e "${YELLOW}Example: manual_static_ip enxc8a362e2c6d4 169.254.135.230 16${NC}"
+        return 1
+    fi
+    
+    # Validate interface exists
+    if ! ip link show "$interface" &>/dev/null; then
+        error "Interface $interface not found!"
+        echo -e "${YELLOW}Available interfaces:${NC}"
+        ip link show | grep -E '^[0-9]+:' | grep -v 'lo:' | awk -F': ' '{print "   " $2}' | cut -d'@' -f1
+        return 1
+    fi
+    
+    # Validate IP format
+    if ! [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        error "Invalid IP address format: $ip"
+        return 1
+    fi
+    
+    log "Manually configuring static IP..."
+    configure_static_ip "$interface" "$ip" "$netmask"
+}
+
 # Function to auto-configure best interface
 auto_configure() {
     log "Auto-configuring network for Input Leap..."
     
     local interfaces
-    interfaces=$(detect_interfaces)
+    if ! interfaces=$(detect_interfaces); then
+        error "No network interfaces found!"
+        echo -e "${YELLOW}💡 This usually means:${NC}"
+        echo -e "   ${CYAN}• Network hardware is not detected${NC}"
+        echo -e "   ${CYAN}• You're running in a virtual machine without network${NC}"
+        echo -e "   ${CYAN}• Network drivers are missing${NC}"
+        echo ""
+        echo -e "${YELLOW}🔧 Try:${NC}"
+        echo -e "   ${CYAN}ip link show${NC}    - See all interfaces"
+        echo -e "   ${CYAN}lspci | grep -i network${NC}    - Check network hardware"
+        return 1
+    fi
     
     # Prioritize ethernet interfaces
     local eth_interfaces
@@ -327,9 +507,15 @@ show_help() {
     echo ""
     echo -e "${GREEN}Basic Commands:${NC}"
     echo -e "  ${CYAN}leap network status${NC}              Show all network interfaces"
-    echo -e "  ${CYAN}leap network auto${NC}                Auto-configure best interface"
+    echo -e "  ${CYAN}leap network auto${NC}                Auto-configure with DHCP"
+    echo -e "  ${CYAN}leap network static${NC}              Auto-configure with static IP"
     echo -e "  ${CYAN}leap network test HOST${NC}           Test connectivity to server"
     echo -e "  ${CYAN}leap network check${NC}               Check Input Leap server"
+    echo ""
+    echo -e "${GREEN}Static IP Commands:${NC}"
+    echo -e "  ${CYAN}leap network static${NC}                      Auto-configure Ethernet with 169.254.135.230"
+    echo -e "  ${CYAN}leap network static <interface> <ip>${NC}     Set custom static IP"
+    echo -e "  ${CYAN}leap network static <interface> <ip> <mask>${NC} Set with custom netmask"
     echo ""
     echo -e "${GREEN}Advanced Commands:${NC}"
     echo -e "  ${CYAN}leap network up <interface>${NC}      Bring up specific interface"
@@ -337,13 +523,19 @@ show_help() {
     echo -e "  ${CYAN}leap network reset${NC}               Reset network configuration"
     echo ""
     echo -e "${GREEN}Examples:${NC}"
-    echo -e "  ${YELLOW}leap network status${NC}             # Show all interface status"
-    echo -e "  ${YELLOW}leap network auto${NC}               # Auto-configure best interface"
-    echo -e "  ${YELLOW}leap network test 192.168.1.100${NC} # Test server connectivity"
-    echo -e "  ${YELLOW}leap network up eth0${NC}            # Bring up eth0 interface"
+    echo -e "  ${YELLOW}leap network status${NC}                     # Show all interface status"
+    echo -e "  ${YELLOW}leap network static${NC}                     # Auto-configure Ethernet with static IP"
+    echo -e "  ${YELLOW}leap network static enxc8a362 169.254.135.230${NC} # Custom interface & IP"
+    echo -e "  ${YELLOW}leap network test 169.254.135.231${NC}       # Test static IP server"
+    echo -e "  ${YELLOW}leap network auto${NC}                       # DHCP auto-configuration"
+    echo ""
+    echo -e "${GREEN}💡 Recommended for Input Leap:${NC}"
+    echo -e "  ${BLUE}Use static IP for reliable connections!${NC}"
+    echo -e "  ${CYAN}leap network static${NC}  # Sets up 169.254.135.230/16"
+    echo -e "  ${YELLOW}Then configure your server to: 169.254.135.231${NC}"
     echo ""
     echo -e "${GREEN}Troubleshooting:${NC}"
-    echo -e "  ${BLUE}No Ethernet?${NC} Run ${CYAN}leap network auto${NC} to configure"
+    echo -e "  ${BLUE}No Ethernet?${NC} Run ${CYAN}leap network static${NC} to configure"
     echo -e "  ${BLUE}Can't connect?${NC} Run ${CYAN}leap network test SERVER${NC} first"
     echo -e "  ${BLUE}Multiple interfaces?${NC} Use ${CYAN}leap network status${NC} to see all"
     echo ""
@@ -357,6 +549,20 @@ main() {
             ;;
         "auto")
             auto_configure
+            ;;
+        "static")
+            # Handle different static IP scenarios
+            if [[ -z "${2:-}" ]]; then
+                # No arguments = auto-configure with static IP
+                auto_configure_ethernet_static
+            elif [[ -z "${3:-}" ]]; then
+                error "IP address required. Usage: $0 static <interface> <ip> [netmask]"
+                echo -e "${YELLOW}Example: $0 static enxc8a362e2c6d4 169.254.135.230${NC}"
+                exit 1
+            else
+                # Manual static IP configuration
+                manual_static_ip "$2" "$3" "${4:-16}"
+            fi
             ;;
         "up")
             if [[ -z "${2:-}" ]]; then
@@ -385,7 +591,7 @@ main() {
         "reset")
             log "Resetting network configuration..."
             rm -f "$NETWORK_CONFIG"
-            log "Network configuration reset. Run 'auto' to reconfigure."
+            log "Network configuration reset. Run 'auto' or 'static' to reconfigure."
             ;;
         "help"|"-h"|"--help"|"")
             show_help

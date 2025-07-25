@@ -22,6 +22,42 @@ readonly NC='\033[0m'
 # Ensure directories exist
 mkdir -p "$(dirname "$CONFIG_FILE")" "$(dirname "$LOG_FILE")" "$(dirname "$PID_FILE")"
 
+# Fool-proof environment checks
+check_prerequisites() {
+    local errors=()
+    
+    # Check if Input Leap is installed
+    if ! command -v input-leap-client &> /dev/null; then
+        errors+=("🚫 Input Leap is not installed!")
+    fi
+    
+    # Check if running in a display environment
+    if [[ -z "${DISPLAY:-}" ]] && [[ -z "${WAYLAND_DISPLAY:-}" ]]; then
+        errors+=("🚫 No display environment detected (not in a desktop session)")
+    fi
+    
+    # Report errors with helpful tips
+    if [[ ${#errors[@]} -gt 0 ]]; then
+        echo -e "${RED}❌ Can't run Input Leap:${NC}"
+        for error in "${errors[@]}"; do
+            echo -e "   ${RED}$error${NC}"
+        done
+        echo ""
+        echo -e "${YELLOW}💡 How to fix:${NC}"
+        if ! command -v input-leap-client &> /dev/null; then
+            echo -e "   ${CYAN}• Run the setup script first: ./setup.sh${NC}"
+            echo -e "   ${CYAN}• Or install manually: sudo pacman -S input-leap${NC}"
+        fi
+        if [[ -z "${DISPLAY:-}" ]] && [[ -z "${WAYLAND_DISPLAY:-}" ]]; then
+            echo -e "   ${CYAN}• Make sure you're running this in a desktop session${NC}"
+            echo -e "   ${CYAN}• Don't run this over SSH without X11 forwarding${NC}"
+        fi
+        return 1
+    fi
+    
+    return 0
+}
+
 # Detect desktop environment
 detect_desktop() {
     # Safely handle potentially unset environment variables
@@ -197,6 +233,11 @@ test_connection() {
 
 # Start Input Leap client
 start_client() {
+    # Check prerequisites first
+    if ! check_prerequisites; then
+        return 1
+    fi
+    
     # Check if already running
     if is_running; then
         log_warn "Input Leap client is already running (PID: $(cat "$PID_FILE"))"
