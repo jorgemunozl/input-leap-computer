@@ -39,9 +39,17 @@ get_hostname() {
 check_prerequisites() {
     local errors=()
     
-    # Check if Input Leap is installed
-    if ! command -v input-leap-client &> /dev/null; then
-        errors+=("🚫 Input Leap is not installed!")
+    # Check if Input Leap client is installed (try multiple possible names)
+    local client_binary=""
+    for binary in "input-leapc" "input-leap-client" "synergyc"; do
+        if command -v "$binary" &> /dev/null; then
+            client_binary="$binary"
+            break
+        fi
+    done
+    
+    if [[ -z "$client_binary" ]]; then
+        errors+=("🚫 Input Leap client is not installed!")
     fi
     
     # Check if running in a display environment
@@ -57,9 +65,10 @@ check_prerequisites() {
         done
         echo ""
         echo -e "${YELLOW}💡 How to fix:${NC}"
-        if ! command -v input-leap-client &> /dev/null; then
+        if [[ -z "$client_binary" ]]; then
             echo -e "   ${CYAN}• Run the setup script first: ./setup.sh${NC}"
             echo -e "   ${CYAN}• Or install manually: sudo pacman -S input-leap${NC}"
+            echo -e "   ${CYAN}• Check if installed: ls /usr/bin/*input-leap*${NC}"
         fi
         if [[ -z "${DISPLAY:-}" ]] && [[ -z "${WAYLAND_DISPLAY:-}" ]]; then
             echo -e "   ${CYAN}• Make sure you're running this in a desktop session${NC}"
@@ -69,6 +78,20 @@ check_prerequisites() {
     fi
     
     return 0
+}
+
+# Function to get the correct Input Leap client binary
+get_client_binary() {
+    for binary in "input-leapc" "input-leap-client" "synergyc"; do
+        if command -v "$binary" &> /dev/null; then
+            echo "$binary"
+            return 0
+        fi
+    done
+    
+    # If none found, return the most likely name for error reporting
+    echo "input-leapc"
+    return 1
 }
 
 # Detect desktop environment
@@ -350,7 +373,17 @@ start_client() {
     fi
     
     # Start client in background
-    nohup input-leap-client \
+    local client_binary
+    client_binary=$(get_client_binary)
+    
+    if ! command -v "$client_binary" &> /dev/null; then
+        log_error "Input Leap client binary not found: $client_binary"
+        log_error "Available binaries: $(ls /usr/bin/*input-leap* 2>/dev/null || echo 'none found')"
+        return 1
+    fi
+    
+    log_info "Starting Input Leap client: $client_binary"
+    nohup "$client_binary" \
         --name "$CLIENT_NAME" \
         "$SERVER_HOST:$SERVER_PORT" \
         >> "$LOG_FILE" 2>&1 &

@@ -189,30 +189,39 @@ detect_system() {
     fi
 }
 
-# Check existing Input Leap installation
+# Enhanced existing installation detection
 check_existing_installation() {
     log_info "Checking for existing Input Leap installation..."
     
     local input_leap_installed=false
     local installation_method=""
+    local client_binary=""
     
-    # Check if input-leap-client exists
-    if command -v input-leap-client &> /dev/null; then
-        input_leap_installed=true
+    # Check for client binary (try multiple names)
+    for binary in "input-leapc" "input-leap-client" "synergyc"; do
+        if command -v "$binary" &> /dev/null; then
+            client_binary="$binary"
+            input_leap_installed=true
+            break
+        fi
+    done
+    
+    if [[ "$input_leap_installed" == true ]]; then
         
         # Try to determine installation method
         if pacman -Qi input-leap &> /dev/null; then
             installation_method="official repository"
         elif pacman -Qi input-leap-git &> /dev/null; then
             installation_method="AUR (input-leap-git)"
-        elif which input-leap-client | grep -q "/usr/local"; then
+        elif which "$client_binary" | grep -q "/usr/local"; then
             installation_method="manual/local installation"
         else
             installation_method="unknown method"
         fi
         
         log_success "Input Leap is already installed via $installation_method"
-        log_info "Version: $(input-leap-client --version 2>/dev/null || echo 'Unknown')"
+        log_info "Client binary: $client_binary"
+        log_info "Version: $($client_binary --version 2>/dev/null || echo 'Unknown')"
         
         echo ""
         echo "Input Leap is already installed. What would you like to do?"
@@ -592,8 +601,16 @@ install_input_leap() {
     log_info "Installing Input Leap..."
     
     # Double-check if it got installed during our process
-    if command -v input-leap-client &> /dev/null; then
-        log_success "Input Leap is already installed"
+    local client_binary=""
+    for binary in "input-leapc" "input-leap-client" "synergyc"; do
+        if command -v "$binary" &> /dev/null; then
+            client_binary="$binary"
+            break
+        fi
+    done
+    
+    if [[ -n "$client_binary" ]]; then
+        log_success "Input Leap is already installed: $client_binary"
         return 0
     fi
     
