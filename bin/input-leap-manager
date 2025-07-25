@@ -21,6 +21,19 @@ readonly NC='\033[0m'
 # Ensure directories exist
 mkdir -p "$(dirname "$CONFIG_FILE")" "$(dirname "$LOG_FILE")" "$(dirname "$PID_FILE")"
 
+# Detect desktop environment
+detect_desktop() {
+    if [[ "$XDG_CURRENT_DESKTOP" == *"GNOME"* ]] || [[ "$DESKTOP_SESSION" == *"gnome"* ]]; then
+        echo "GNOME"
+    elif [[ "$XDG_CURRENT_DESKTOP" == *"KDE"* ]]; then
+        echo "KDE"
+    elif [[ "$XDG_SESSION_TYPE" == "wayland" ]]; then
+        echo "WAYLAND"
+    else
+        echo "X11"
+    fi
+}
+
 # Logging functions
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
@@ -181,8 +194,23 @@ start_client() {
     
     trap 'rm -f "$LOCK_FILE"' EXIT
     
+    local desktop_env=$(detect_desktop)
     log_info "Starting Input Leap client..."
     log_info "Connecting to $SERVER_HOST:$SERVER_PORT as $CLIENT_NAME"
+    log_info "Desktop environment: $desktop_env"
+    
+    # GNOME/Wayland specific handling
+    if [[ "$desktop_env" == "GNOME" ]]; then
+        log_info "Applying GNOME-specific optimizations..."
+        
+        # Ensure we're using X11 for better compatibility
+        export GDK_BACKEND=x11
+        
+        # Set display if not already set
+        if [[ -z "$DISPLAY" ]]; then
+            export DISPLAY=:0
+        fi
+    fi
     
     # Start client in background
     nohup input-leap-client \

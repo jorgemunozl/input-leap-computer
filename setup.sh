@@ -66,6 +66,172 @@ check_root() {
     fi
 }
 
+# Detect system information
+detect_system() {
+    log_info "Detecting system configuration..."
+    
+    # Detect desktop environment
+    if [[ "$XDG_CURRENT_DESKTOP" == *"GNOME"* ]] || [[ "$DESKTOP_SESSION" == *"gnome"* ]]; then
+        DESKTOP_ENV="GNOME"
+        log_info "Detected GNOME desktop environment"
+    elif [[ "$XDG_CURRENT_DESKTOP" == *"KDE"* ]]; then
+        DESKTOP_ENV="KDE"
+        log_info "Detected KDE desktop environment"
+    elif [[ "$XDG_CURRENT_DESKTOP" == *"XFCE"* ]]; then
+        DESKTOP_ENV="XFCE"
+        log_info "Detected XFCE desktop environment"
+    else
+        DESKTOP_ENV="OTHER"
+        log_info "Desktop environment: ${XDG_CURRENT_DESKTOP:-Unknown}"
+    fi
+    
+    # Detect if laptop
+    if [[ -d "/proc/acpi/battery" ]] || [[ -n "$(ls /sys/class/power_supply/BAT* 2>/dev/null)" ]]; then
+        IS_LAPTOP=true
+        log_info "Detected laptop system"
+    else
+        IS_LAPTOP=false
+        log_info "Detected desktop system"
+    fi
+    
+    # Detect Arch Linux
+    if [[ -f "/etc/arch-release" ]] || command -v pacman &> /dev/null; then
+        IS_ARCH=true
+        log_info "Detected Arch Linux"
+    else
+        IS_ARCH=false
+        log_warn "Non-Arch system detected - some features may not work"
+    fi
+}
+
+# Check existing Input Leap installation
+check_existing_installation() {
+    log_info "Checking for existing Input Leap installation..."
+    
+    local input_leap_installed=false
+    local installation_method=""
+    
+    # Check if input-leap-client exists
+    if command -v input-leap-client &> /dev/null; then
+        input_leap_installed=true
+        
+        # Try to determine installation method
+        if pacman -Qi input-leap &> /dev/null; then
+            installation_method="official repository"
+        elif pacman -Qi input-leap-git &> /dev/null; then
+            installation_method="AUR (input-leap-git)"
+        elif which input-leap-client | grep -q "/usr/local"; then
+            installation_method="manual/local installation"
+        else
+            installation_method="unknown method"
+        fi
+        
+        log_success "Input Leap is already installed via $installation_method"
+        log_info "Version: $(input-leap-client --version 2>/dev/null || echo 'Unknown')"
+        
+        echo ""
+        echo "Input Leap is already installed. What would you like to do?"
+        echo "1) Continue with configuration setup only"
+        echo "2) Reinstall Input Leap (will remove current installation)"
+        echo "3) Exit and keep current installation"
+        echo ""
+        echo -n "Choose option [1-3]: "
+        read -r choice
+        
+        case "$choice" in
+            1)
+                log_info "Continuing with configuration setup only..."
+                SKIP_INSTALLATION=true
+                ;;
+            2)
+                log_info "Will reinstall Input Leap..."
+                remove_existing_installation
+                SKIP_INSTALLATION=false
+                ;;
+            3)
+                log_info "Exiting setup. Current installation preserved."
+                exit 0
+                ;;
+            *)
+                log_info "Invalid choice. Continuing with configuration setup only..."
+                SKIP_INSTALLATION=true
+                ;;
+        esac
+    else
+        log_info "No existing Input Leap installation found"
+        SKIP_INSTALLATION=false
+    fi
+}
+
+# Remove existing installation
+remove_existing_installation() {
+    log_info "Removing existing Input Leap installation..."
+    
+    # Try official package first
+    if pacman -Qi input-leap &> /dev/null; then
+        sudo pacman -Rns input-leap --noconfirm
+        log_success "Removed official Input Leap package"
+    fi
+    
+    # Try AUR package
+    if pacman -Qi input-leap-git &> /dev/null; then
+        if command -v yay &> /dev/null; then
+            yay -Rns input-leap-git --noconfirm
+        else
+            sudo pacman -Rns input-leap-git --noconfirm
+        fi
+        log_success "Removed AUR Input Leap package"
+    fi
+    
+    # Clean up any remaining files
+    sudo rm -f /usr/local/bin/input-leap-* 2>/dev/null || true
+}
+
+# GNOME-specific setup for laptops
+setup_gnome_laptop() {
+    if [[ "$DESKTOP_ENV" == "GNOME" ]] && [[ "$IS_LAPTOP" == true ]]; then
+        log_info "Configuring GNOME laptop-specific settings..."
+        
+        # Disable GNOME's built-in screen sharing that might conflict
+        if command -v gsettings &> /dev/null; then
+            # Disable automatic screen lock when Input Leap is active
+            log_info "Configuring GNOME power management..."
+            
+            # Store current settings for potential restoration
+            mkdir -p "$USER_CONFIG"
+            gsettings get org.gnome.desktop.screensaver lock-enabled > "$USER_CONFIG/gnome-lock-backup" 2>/dev/null || true
+            gsettings get org.gnome.desktop.session idle-delay > "$USER_CONFIG/gnome-idle-backup" 2>/dev/null || true
+            
+            # Optional: Ask user about power management
+            echo ""
+            echo "GNOME Laptop Optimization:"
+            echo "Would you like to disable automatic screen lock while using Input Leap?"
+            echo "This prevents the laptop from locking when controlled remotely."
+            echo ""
+            echo -n "Disable auto-lock? (y/N): "
+            read -r disable_lock
+            
+            if [[ "$disable_lock" =~ ^[Yy]$ ]]; then
+                gsettings set org.gnome.desktop.screensaver lock-enabled false
+                gsettings set org.gnome.desktop.session idle-delay 0
+                log_success "Disabled GNOME auto-lock for better Input Leap experience"
+                echo "To restore later: gsettings set org.gnome.desktop.screensaver lock-enabled true"
+            fi
+        fi
+        
+        # Install GNOME-specific dependencies if needed
+        if [[ "$IS_ARCH" == true ]]; then
+            log_info "Installing GNOME integration packages..."
+            sudo pacman -S --needed --noconfirm \
+                libnotify \
+                gnome-shell-extensions \
+                2>/dev/null || log_warn "Some GNOME packages may not be available"
+        fi
+        
+        log_success "GNOME laptop configuration completed"
+    fi
+}
+
 # Create necessary directories
 create_directories() {
     log_info "Creating user directories..."
@@ -75,11 +241,24 @@ create_directories() {
 
 # Install Input Leap package
 install_input_leap() {
+    if [[ "$SKIP_INSTALLATION" == true ]]; then
+        log_info "Skipping Input Leap installation (already installed)"
+        return 0
+    fi
+    
     log_info "Installing Input Leap..."
     
+    # Double-check if it got installed during our process
     if command -v input-leap-client &> /dev/null; then
         log_success "Input Leap is already installed"
         return 0
+    fi
+    
+    # Ensure we're on Arch Linux for our installation method
+    if [[ "$IS_ARCH" != true ]]; then
+        log_error "This installer is designed for Arch Linux. Please install Input Leap manually."
+        log_info "Visit: https://github.com/input-leap/input-leap for installation instructions"
+        exit 1
     fi
     
     # Try official package first
@@ -227,8 +406,11 @@ main() {
     print_banner
     
     check_root
+    detect_system
+    check_existing_installation
     create_directories
     install_input_leap
+    setup_gnome_laptop
     setup_systemd
     setup_shell_integration
     configure_server

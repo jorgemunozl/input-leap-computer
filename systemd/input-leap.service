@@ -15,8 +15,14 @@ RestartSec=5
 TimeoutStartSec=30
 TimeoutStopSec=10
 
-# Ensure we have a display for GUI notifications
+# Environment variables for GUI applications
 Environment=DISPLAY=:0
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=XDG_RUNTIME_DIR=%h/.cache/xdg-runtime
+Environment=XDG_SESSION_TYPE=x11
+
+# GNOME/Wayland compatibility
+Environment=GDK_BACKEND=x11,wayland
 
 # Logging
 StandardOutput=journal
