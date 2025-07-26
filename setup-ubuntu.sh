@@ -33,6 +33,67 @@ IS_UBUNTU=false
 IS_WSL=false
 SKIP_INSTALLATION=false
 
+# Validate sudo access early
+validate_sudo() {
+    echo -e "${BLUE}🔐 Checking sudo access for seamless installation...${NC}"
+    
+    if ! sudo -v; then
+        echo -e "${RED}❌ ERROR: Need sudo access to install packages and configure system${NC}"
+        echo -e "${YELLOW}💡 TIP: Enter your password when prompted${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}✅ Sudo access validated!${NC}"
+}
+
+# Ask user about network preference
+choose_network_setup() {
+    echo ""
+    echo -e "${PURPLE}🌐 Network Setup Choice${NC}"
+    echo -e "${YELLOW}Choose your preferred network configuration:${NC}"
+    echo ""
+    echo -e "${CYAN}1. Static Ethernet (RECOMMENDED)${NC} - Fixed IP on wired connection"
+    echo -e "   ${BLUE}→ Most reliable, no DHCP issues, works without router${NC}"
+    echo -e "   ${BLUE}→ IP: 169.254.135.230 (link-local, always works)${NC}"
+    echo ""
+    echo -e "${CYAN}2. Dynamic LAN/WiFi${NC} - Use existing DHCP network"
+    echo -e "   ${BLUE}→ Uses your current network (WiFi/Ethernet)${NC}"
+    echo -e "   ${BLUE}→ IP changes with DHCP, may need reconfiguration${NC}"
+    echo ""
+    echo -e "${CYAN}3. Skip Network Setup${NC} - Configure manually later"
+    echo -e "   ${BLUE}→ Install only, configure network with 'leap network' commands${NC}"
+    echo ""
+    
+    while true; do
+        echo -n -e "${YELLOW}Enter your choice [1/2/3] (default: 1): ${NC}"
+        read -r network_choice
+        
+        # Default to static ethernet
+        network_choice=${network_choice:-1}
+        
+        case "$network_choice" in
+            1)
+                export NETWORK_MODE="static"
+                echo -e "${GREEN}✅ Selected: Static Ethernet with link-local IP${NC}"
+                break
+                ;;
+            2)
+                export NETWORK_MODE="dynamic"
+                echo -e "${GREEN}✅ Selected: Dynamic LAN/WiFi networking${NC}"
+                break
+                ;;
+            3)
+                export NETWORK_MODE="skip"
+                echo -e "${GREEN}✅ Selected: Skip network setup (manual configuration)${NC}"
+                break
+                ;;
+            *)
+                echo -e "${RED}❌ Invalid choice. Please enter 1, 2, or 3${NC}"
+                ;;
+        esac
+    done
+}
+
 # Banner
 print_banner() {
     echo -e "${CYAN}"

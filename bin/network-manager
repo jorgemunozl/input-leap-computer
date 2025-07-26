@@ -550,6 +550,10 @@ main() {
         "auto")
             auto_configure
             ;;
+        "auto_ethernet_static")
+            # Alias for setup script use
+            auto_configure_ethernet_static
+            ;;
         "static")
             # Handle different static IP scenarios
             if [[ -z "${2:-}" ]]; then

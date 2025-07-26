@@ -32,9 +32,15 @@ Complete automation for Input Leap **CLIENT** setup and management. One command 
 ### **Step 1: Set Up This Machine (Client)**
 ```bash
 cd input-leap
-./install                    # Run our setup script
-leap network static          # Configure static IP (recommended)
+./install                    # Run our setup script (asks about network preference)
 ```
+
+**🔧 During setup, you'll choose:**
+- **Static Ethernet** (recommended) - Fixed IP for reliable connections
+- **Dynamic LAN/WiFi** - Use existing network (may need reconfiguration)
+- **Manual setup** - Configure network later with `leap network` commands
+
+**💡 The script automatically validates sudo access for seamless installation!**
 
 ### **Step 2: Set Up Your Main Computer (Server)**
 ```bash
@@ -139,7 +145,15 @@ cd input-leap
 # 🔧 Traditional way (if you want to see more details)
 ./setup.sh
 ```
-**Zero configuration needed!** Just press Enter when asked for your server IP - you can set it up later!
+
+**🌐 Network Choice:** During setup, you'll choose your preferred network configuration:
+- **Static Ethernet** (most reliable, fixed IP)
+- **Dynamic LAN/WiFi** (uses existing network)  
+- **Manual setup** (configure later)
+
+**🔐 Seamless Installation:** Script automatically validates sudo access upfront!
+
+**Zero extra configuration needed!** Just choose your network preference and press Enter when asked for your server IP - you can set it up later!
 
 ### **Ubuntu/Debian (Also Supported)**  
 **Step 1:** Open terminal (Ctrl+Alt+T) and go to the folder:

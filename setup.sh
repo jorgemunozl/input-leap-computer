@@ -26,6 +26,67 @@ readonly USER_CONFIG="$HOME/.config/input-leap"
 readonly USER_CACHE="$HOME/.cache/input-leap"
 readonly USER_SYSTEMD="$HOME/.config/systemd/user"
 
+# Validate sudo access early
+validate_sudo() {
+    echo -e "${BLUE}🔐 Checking sudo access for seamless installation...${NC}"
+    
+    if ! sudo -v; then
+        echo -e "${RED}❌ ERROR: Need sudo access to install packages and configure system${NC}"
+        echo -e "${YELLOW}💡 TIP: Enter your password when prompted${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}✅ Sudo access validated!${NC}"
+}
+
+# Ask user about network preference
+choose_network_setup() {
+    echo ""
+    echo -e "${PURPLE}🌐 Network Setup Choice${NC}"
+    echo -e "${YELLOW}Choose your preferred network configuration:${NC}"
+    echo ""
+    echo -e "${CYAN}1. Static Ethernet (RECOMMENDED)${NC} - Fixed IP on wired connection"
+    echo -e "   ${BLUE}→ Most reliable, no DHCP issues, works without router${NC}"
+    echo -e "   ${BLUE}→ IP: 169.254.135.230 (link-local, always works)${NC}"
+    echo ""
+    echo -e "${CYAN}2. Dynamic LAN/WiFi${NC} - Use existing DHCP network"
+    echo -e "   ${BLUE}→ Uses your current network (WiFi/Ethernet)${NC}"
+    echo -e "   ${BLUE}→ IP changes with DHCP, may need reconfiguration${NC}"
+    echo ""
+    echo -e "${CYAN}3. Skip Network Setup${NC} - Configure manually later"
+    echo -e "   ${BLUE}→ Install only, configure network with 'leap network' commands${NC}"
+    echo ""
+    
+    while true; do
+        echo -n -e "${YELLOW}Enter your choice [1/2/3] (default: 1): ${NC}"
+        read -r network_choice
+        
+        # Default to static ethernet
+        network_choice=${network_choice:-1}
+        
+        case "$network_choice" in
+            1)
+                export NETWORK_MODE="static"
+                echo -e "${GREEN}✅ Selected: Static Ethernet with link-local IP${NC}"
+                break
+                ;;
+            2)
+                export NETWORK_MODE="dynamic"
+                echo -e "${GREEN}✅ Selected: Dynamic LAN/WiFi networking${NC}"
+                break
+                ;;
+            3)
+                export NETWORK_MODE="skip"
+                echo -e "${GREEN}✅ Selected: Skip network setup (manual configuration)${NC}"
+                break
+                ;;
+            *)
+                echo -e "${RED}❌ Invalid choice. Please enter 1, 2, or 3${NC}"
+                ;;
+        esac
+    done
+}
+
 # Fool-proof checks
 check_environment() {
     # Check if running on Linux
@@ -706,8 +767,46 @@ setup_shell_integration() {
     fi
 }
 
-# Configure Input Leap server
-configure_server() {
+# Configure network and Input Leap server based on user choice
+configure_network_and_server() {
+    case "$NETWORK_MODE" in
+        "static")
+            log_info "🔧 Configuring static Ethernet network..."
+            if [[ -x "$BIN_DIR/network-manager" ]]; then
+                if "$BIN_DIR/network-manager" auto_ethernet_static; then
+                    log_success "Static Ethernet configured successfully!"
+                    log_info "Your static IP: 169.254.135.230"
+                    echo -e "${YELLOW}💡 Configure your server with client IP: 169.254.135.230${NC}"
+                else
+                    log_warn "Static network setup failed, falling back to dynamic"
+                    log_info "You can try manual setup later with: leap network static"
+                fi
+            fi
+            ;;
+        "dynamic")
+            log_info "🌐 Configuring dynamic network (using existing DHCP)..."
+            if [[ -x "$BIN_DIR/network-manager" ]]; then
+                if "$BIN_DIR/network-manager" auto; then
+                    log_success "Dynamic network configured successfully!"
+                    local current_ip=$(hostname -I | awk '{print $1}')
+                    log_info "Your current IP: ${current_ip:-'(detecting...)'}"
+                    echo -e "${YELLOW}💡 Configure your server with client IP: ${current_ip:-'check with: ip addr'}${NC}"
+                else
+                    log_warn "Dynamic network setup had issues"
+                    log_info "You can try manual setup later with: leap network auto"
+                fi
+            fi
+            ;;
+        "skip")
+            log_info "⏭️  Skipping network configuration (as requested)"
+            echo -e "${CYAN}🔧 Network setup skipped. Configure later with:${NC}"
+            echo -e "   ${CYAN}leap network static${NC}  # For static Ethernet"
+            echo -e "   ${CYAN}leap network auto${NC}    # For dynamic DHCP"
+            echo -e "   ${CYAN}leap network status${NC}  # Check current network"
+            ;;
+    esac
+    
+    echo ""
     log_info "Configuring Input Leap server connection..."
     "$BIN_DIR/input-leap-manager" config
 }
@@ -761,49 +860,54 @@ main() {
     print_banner
     
     log_info "🏗️  Arch Linux Input Leap Auto-Setup Started"
+    
+    echo -e "${BLUE}[1/13]${NC} Validating sudo access..."
+    validate_sudo
+    
+    echo -e "${BLUE}[2/13]${NC} Network configuration choice..."
+    choose_network_setup
+    
     log_info "📋 This script will automatically:"
     log_info "   • Detect your system (GNOME/KDE/XFCE, laptop/desktop)"
     log_info "   • Install Input Leap (repos + AUR fallback)"
     log_info "   • Apply GNOME optimizations (if detected)"
-    log_info "   • Configure network interfaces"
+    log_info "   • Configure network interfaces (${NETWORK_MODE} mode)"
     log_info "   • Set up auto-start and systemd service"
     log_info "   • Test everything works"
     echo ""
     
-    echo -e "${BLUE}[1/11]${NC} Checking environment and requirements..."
+    echo -e "${BLUE}[3/13]${NC} Checking environment and requirements..."
     check_environment
     
-    echo -e "${BLUE}[2/11]${NC} Checking permissions..."
+    echo -e "${BLUE}[4/13]${NC} Checking permissions..."
     check_root
     
-    echo -e "${BLUE}[3/11]${NC} Detecting system configuration..."
+    echo -e "${BLUE}[5/13]${NC} Detecting system configuration..."
     detect_system
     
-    echo -e "${BLUE}[4/11]${NC} Checking existing installations..."
+    echo -e "${BLUE}[6/13]${NC} Checking existing installations..."
     check_existing_installation
     
-    echo -e "${BLUE}[5/11]${NC} Creating directories..."
+    echo -e "${BLUE}[7/13]${NC} Creating directories..."
     create_directories
     
-    echo -e "${BLUE}[6/11]${NC} Installing Input Leap..."
+    echo -e "${BLUE}[8/13]${NC} Installing Input Leap..."
     install_input_leap
     
-    echo -e "${BLUE}[7/11]${NC} Setting up GNOME integration..."
+    echo -e "${BLUE}[9/13]${NC} Setting up GNOME integration..."
     setup_gnome_integration
     
-    echo -e "${BLUE}[8/11]${NC} Configuring systemd service..."
+    echo -e "${BLUE}[10/13]${NC} Configuring systemd service..."
     setup_systemd
     
-    echo -e "${BLUE}[9/11]${NC} Setting up shell integration..."
+    echo -e "${BLUE}[11/13]${NC} Setting up shell integration..."
     setup_shell_integration
     
-    echo -e "${BLUE}[10/11]${NC} Configuring server connection..."
-    configure_server
+    echo -e "${BLUE}[12/13]${NC} Configuring network and server connection..."
+    configure_network_and_server
     
-    echo -e "${BLUE}[11/11]${NC} Testing setup..."
+    echo -e "${BLUE}[13/13]${NC} Testing setup and enabling auto-start..."
     test_setup
-    
-    echo -e "${BLUE}[12/12]${NC} Enabling auto-start..."
     enable_autostart
     
     show_usage
