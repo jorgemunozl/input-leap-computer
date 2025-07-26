@@ -27,6 +27,36 @@ Complete automation for Input Leap **CLIENT** setup and management. One command 
 **Move your mouse to the edge** → Control switches to the client machine!  
 **Move back** → Control returns to your server machine!
 
+---
+
+## ⚡ **Quick Start**
+
+### 🖥️ **Server (Main Computer) Setup**
+```bash
+# Install Input Leap server on your main computer
+sudo pacman -S input-leap
+
+# NEW: Minimalist setup commands
+leap-server config      # One-time configuration
+leap-server add-client  # Add client machine(s)  
+leap-server start       # Start the server
+```
+
+### 💻 **Client (This Computer) Setup**
+```bash
+# Install & configure this client
+curl -sSL https://raw.githubusercontent.com/your-username/input-leap/main/install | bash
+
+# Connect to server
+leap-client connect     # NEW: Simple connection
+# OR use traditional command
+leap start              # Traditional way
+```
+
+**🎯 That's it! Move mouse to edge to switch control.**
+
+---
+
 ## 📋 **Complete Setup Workflow**
 
 ### **Step 1: Set Up This Machine (Client)**
@@ -47,32 +77,35 @@ cd input-leap
 ```bash
 # On your main computer:
 sudo pacman -S input-leap    # Install Input Leap server
-input-leap-server --config  # Configure in GUI
-# Add client IP: 169.254.135.230 (if using static IP option 1)
-# OR: 169.254.135.231 (if using static IP option 2)
-# Set screen position (left/right/top/bottom)
-# Click "Start" in the server GUI  ← IMPORTANT: Start the server!
+
+# Minimalist setup (NEW!):
+curl -O https://raw.githubusercontent.com/jorgemunozl/input-leap-computer/main/bin/leap-server
+chmod +x leap-server
+./leap-server config         # Configure server
+./leap-server add-client     # Add this client machine
+./leap-server start          # Start server
 ```
 
-**⚠️ CRITICAL DIFFERENCES:**
-- **SERVER**: Uses GUI, click "Start" button, no `leap` commands
-- **CLIENT**: Uses terminal, runs `leap start` command
+**🎯 NEW: Minimalist Commands!**
+- **SERVER**: `leap-server start` (simple terminal command!)
+- **CLIENT**: `leap-client connect` (or `leap start`)
 
-**⚠️ IMPORTANT:** The server does NOT start automatically! You must:
-1. **Configure it once** (add this client machine)
-2. **Start it manually** every time you want to use Input Leap (click "Start" in GUI)
-3. **Keep it running** while using Input Leap
+**⚠️ Two Setup Options:**
+1. **GUI Way**: `input-leap-server --config` → Click "Start" button
+2. **Minimalist Way**: `leap-server config` → `leap-server start` ✨
 
 ### **Step 3: Connect!**
 ```bash
 # On this machine (client):
+leap-client connect          # NEW: Simple connect command!
+# OR the traditional way:
 leap start                   # Connect to server
 leap status                  # Check connection
 ```
 
-**🔄 Complete workflow:**
-1. **SERVER**: Start Input Leap Server GUI → Click "Start" 
-2. **CLIENT**: Run `leap start` in terminal
+**🔄 Complete workflow (MINIMALIST):**
+1. **SERVER**: `leap-server start` 
+2. **CLIENT**: `leap-client connect`
 3. **Result**: Mouse/keyboard sharing active! 🎉
 
 **🔄 How it works:**
@@ -81,8 +114,8 @@ leap status                  # Check connection
 - **Server STOPS** → Client disconnects automatically
 
 **💡 Remember:**
-- **SERVER**: Start with GUI (Input Leap Server application)
-- **CLIENT**: Start with terminal (`leap start`)
+- **SERVER**: `leap-server start` (NEW minimalist way!) or GUI
+- **CLIENT**: `leap-client connect` (NEW!) or `leap start`
 
 ### **Step 4: Use It!**
 - Move mouse to screen edge → control switches to client
@@ -98,17 +131,17 @@ leap status                  # Check connection
 3. **Resources**: Only runs when you actually need it
 
 **The workflow is:**
-1. **Main computer**: Start Input Leap Server GUI → Click "Start"
-2. **This machine**: Connects automatically with `leap start`
+1. **Main computer**: `leap-server start` (NEW!) or GUI → Click "Start"
+2. **This machine**: `leap-client connect` (NEW!) or `leap start`
 3. **Use Input Leap**: Move mouse/keyboard seamlessly
-4. **Done**: Stop server GUI when finished
+4. **Done**: `leap-server stop` or stop server GUI when finished
 
 **Common mistakes:**
 - ❌ Expecting server to start automatically 
-- ❌ Running `leap start` on server (wrong - use GUI instead)
-- ❌ Forgetting to click "Start" in server GUI
-- ❌ Not starting server before trying to connect client
-- ✅ Start server GUI first, then run `leap start` on client
+- ❌ Running `leap start` on server (use `leap-server start` instead!)
+- ❌ Forgetting to start server before connecting client
+- ❌ Not configuring client IP on server
+- ✅ `leap-server start` first, then `leap-client connect`
 
 ## �🤗 For Complete Beginners
 
@@ -258,11 +291,27 @@ This project is **optimized for Arch Linux** because:
 
 ### 🖱️ **Basic Commands**
 ```bash
+# NEW: Minimalist commands
+leap-client connect  # Connect to server (simple!)
+leap-client config   # Configure server IP
+leap-client status   # Check connection
+
+# Traditional commands (still work)
 leap start      # Connect to server
 leap stop       # Disconnect  
 leap status     # Check status with real-time info
 leap config     # Configure server (with examples!)
 leap test       # Test connection with helpful tips
+```
+
+### 🖥️ **Server Commands (NEW!)**
+```bash
+# NEW: Minimalist server management
+leap-server config      # Configure server (one-time)
+leap-server add-client  # Add client machine
+leap-server start       # Start server
+leap-server stop        # Stop server
+leap-server status      # Check server status
 ```
 
 ### 🌐 **Network Management**
@@ -362,6 +411,49 @@ leap network check
 - **Configuration**: `~/.config/input-leap/server.conf`
 - **Logs**: `~/.cache/input-leap/client.log`
 - **Service**: `~/.config/systemd/user/input-leap.service`
+
+---
+
+## 🎯 **Command Reference**
+
+### 🖥️ **Server Commands (NEW!)**
+```bash
+leap-server config      # Configure server (one-time setup)
+leap-server add-client  # Add client machine to server
+leap-server start       # Start Input Leap server
+leap-server stop        # Stop Input Leap server  
+leap-server status      # Check server status
+```
+
+### 💻 **Client Commands**
+```bash
+# NEW Minimalist Commands
+leap-client connect     # Connect to server (simple!)
+leap-client config      # Configure server IP
+leap-client status      # Check connection status
+
+# Traditional Commands (still work)
+leap start             # Connect to server
+leap stop              # Disconnect from server
+leap status            # Detailed connection status
+leap config            # Configure server with examples
+leap test              # Test connection with tips
+leap network auto      # Auto-configure static IP
+```
+
+### 🌐 **Network Commands**
+```bash
+leap network status    # Check network interfaces
+leap network auto      # Auto-configure static IP
+leap network manual    # Manual IP configuration
+leap network check     # Network diagnostics
+leap network test IP   # Test connectivity to server
+```
+
+**🎉 Most Common Workflow:**
+1. **Server**: `leap-server config` → `leap-server add-client` → `leap-server start`
+2. **Client**: `leap-client connect`
+3. **Done!** Move mouse to edge to switch control
 
 ### Project Structure
 ```

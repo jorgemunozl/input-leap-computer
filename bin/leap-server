@@ -1,0 +1,441 @@
+#!/bin/bash
+
+# Input Leap Server Manager - Minimalist server control
+# Usage: leap-server [command]
+# Commands: start, stop, status, config, add-client
+
+set -euo pipefail
+
+# Colors
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly CYAN='\033[0;36m'
+readonly NC='\033[0m'
+
+# Paths
+readonly CONFIG_DIR="$HOME/.config/input-leap-server"
+readonly CONFIG_FILE="$CONFIG_DIR/server.conf"
+readonly LOG_FILE="$HOME/.cache/input-leap/server.log"
+readonly PID_FILE="/tmp/input-leap-server.pid"
+
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] INFO: $1" >> "$LOG_FILE"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] SUCCESS: $1" >> "$LOG_FILE"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1" >> "$LOG_FILE"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] WARN: $1" >> "$LOG_FILE"
+}
+
+# Ensure directories exist
+mkdir -p "$CONFIG_DIR" "$(dirname "$LOG_FILE")"
+
+# Check if server is installed
+check_installation() {
+    if ! command -v input-leap-server &> /dev/null; then
+        log_error "Input Leap server not found!"
+        echo ""
+        echo -e "${YELLOW}💡 Install with:${NC}"
+        echo -e "   ${CYAN}sudo pacman -S input-leap${NC}     # Arch Linux"
+        echo -e "   ${CYAN}sudo apt install input-leap${NC}   # Ubuntu/Debian"
+        return 1
+    fi
+    return 0
+}
+
+# Check if server is running
+is_running() {
+    if [[ -f "$PID_FILE" ]]; then
+        local pid
+        pid=$(cat "$PID_FILE")
+        if ps -p "$pid" > /dev/null 2>&1; then
+            return 0
+        else
+            rm -f "$PID_FILE"
+            return 1
+        fi
+    fi
+    return 1
+}
+
+# Get server status
+show_status() {
+    log_info "Input Leap Server Status"
+    echo ""
+    
+    if ! check_installation; then
+        return 1
+    fi
+    
+    if is_running; then
+        local pid
+        pid=$(cat "$PID_FILE")
+        echo -e "   Status: ${GREEN}RUNNING${NC} (PID: $pid)"
+        
+        # Show configuration if available
+        if [[ -f "$CONFIG_FILE" ]]; then
+            echo -e "   Config: ${CYAN}$CONFIG_FILE${NC}"
+            
+            # Show configured clients
+            local client_count
+            client_count=$(grep -c "^CLIENT_" "$CONFIG_FILE" 2>/dev/null || echo "0")
+            echo -e "   Clients: ${YELLOW}$client_count configured${NC}"
+            
+            # Show server IP
+            local server_ip
+            server_ip=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "unknown")
+            echo -e "   Server IP: ${BLUE}$server_ip${NC}"
+        fi
+    else
+        echo -e "   Status: ${RED}STOPPED${NC}"
+    fi
+    
+    echo ""
+    echo -e "${CYAN}📖 Commands:${NC}"
+    echo "   leap-server start      - Start the server"
+    echo "   leap-server stop       - Stop the server"
+    echo "   leap-server config     - Configure server settings"
+    echo "   leap-server add-client - Add a new client"
+    echo "   leap-server status     - Show this status"
+}
+
+# Configure server
+configure_server() {
+    log_info "Configuring Input Leap Server..."
+    
+    if ! check_installation; then
+        return 1
+    fi
+    
+    echo ""
+    echo -e "${CYAN}🖥️  Input Leap Server Configuration${NC}"
+    echo ""
+    
+    # Get server IP automatically
+    local server_ip
+    server_ip=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "127.0.0.1")
+    
+    echo -e "${YELLOW}Server Information:${NC}"
+    echo -e "   Server IP: ${BLUE}$server_ip${NC}"
+    echo -e "   Server Port: ${BLUE}24800${NC} (default)"
+    echo ""
+    
+    # Create basic configuration
+    cat > "$CONFIG_FILE" << EOF
+# Input Leap Server Configuration
+# Generated on $(date)
+
+SERVER_IP="$server_ip"
+SERVER_PORT="24800"
+SERVER_NAME="$(hostname)"
+
+# Clients will be added below
+# Format: CLIENT_<NAME>="<IP>,<POSITION>"
+EOF
+    
+    log_success "Server configuration created at $CONFIG_FILE"
+    echo ""
+    echo -e "${YELLOW}💡 Next steps:${NC}"
+    echo -e "   1. Add clients: ${CYAN}leap-server add-client${NC}"
+    echo -e "   2. Start server: ${CYAN}leap-server start${NC}"
+    echo -e "   3. Connect clients: ${CYAN}leap start${NC} (on client machines)"
+}
+
+# Add client to configuration
+add_client() {
+    log_info "Adding client to server configuration..."
+    
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        log_error "Server not configured yet. Run: leap-server config"
+        return 1
+    fi
+    
+    echo ""
+    echo -e "${CYAN}➕ Add Client Configuration${NC}"
+    echo ""
+    
+    # Get client details
+    echo -n -e "${YELLOW}Enter client name: ${NC}"
+    read -r client_name
+    
+    if [[ -z "$client_name" ]]; then
+        log_error "Client name cannot be empty"
+        return 1
+    fi
+    
+    echo -n -e "${YELLOW}Enter client IP address: ${NC}"
+    read -r client_ip
+    
+    if [[ -z "$client_ip" ]]; then
+        log_error "Client IP cannot be empty"
+        return 1
+    fi
+    
+    echo ""
+    echo -e "${YELLOW}Screen position relative to server:${NC}"
+    echo -e "   ${CYAN}1. Left${NC}   - Client is to the left of server"
+    echo -e "   ${CYAN}2. Right${NC}  - Client is to the right of server"
+    echo -e "   ${CYAN}3. Above${NC}  - Client is above server"
+    echo -e "   ${CYAN}4. Below${NC}  - Client is below server"
+    echo ""
+    echo -n -e "${YELLOW}Choose position [1-4]: ${NC}"
+    read -r position_choice
+    
+    local position
+    case "$position_choice" in
+        1) position="left" ;;
+        2) position="right" ;;
+        3) position="above" ;;
+        4) position="below" ;;
+        *) position="right" ;;  # Default
+    esac
+    
+    # Add client to configuration
+    echo "" >> "$CONFIG_FILE"
+    echo "# Client: $client_name" >> "$CONFIG_FILE"
+    echo "CLIENT_${client_name^^}=\"$client_ip,$position\"" >> "$CONFIG_FILE"
+    
+    log_success "Client '$client_name' added successfully"
+    echo ""
+    echo -e "${CYAN}Client Configuration:${NC}"
+    echo -e "   Name: ${YELLOW}$client_name${NC}"
+    echo -e "   IP: ${BLUE}$client_ip${NC}"
+    echo -e "   Position: ${GREEN}$position${NC}"
+    echo ""
+    echo -e "${YELLOW}💡 Now start the server: ${CYAN}leap-server start${NC}"
+}
+
+# Start server
+start_server() {
+    log_info "Starting Input Leap Server..."
+    
+    if ! check_installation; then
+        return 1
+    fi
+    
+    if is_running; then
+        log_warn "Server is already running (PID: $(cat "$PID_FILE"))"
+        return 0
+    fi
+    
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        log_error "Server not configured. Run: leap-server config"
+        return 1
+    fi
+    
+    # Generate input-leap config file from our simplified config
+    local input_leap_config="$CONFIG_DIR/input-leap.conf"
+    generate_input_leap_config "$input_leap_config"
+    
+    # Start server
+    log_info "Starting Input Leap server daemon..."
+    nohup input-leap-server --config "$input_leap_config" \
+        >> "$LOG_FILE" 2>&1 &
+    
+    local pid=$!
+    echo "$pid" > "$PID_FILE"
+    
+    # Wait and verify
+    sleep 2
+    if ps -p "$pid" > /dev/null 2>&1; then
+        log_success "Input Leap server started (PID: $pid)"
+        
+        # Show connection info
+        echo ""
+        echo -e "${GREEN}🎉 Server is now running!${NC}"
+        
+        if command -v notify-send &> /dev/null; then
+            notify-send "Input Leap Server" "Server started successfully" -t 3000 2>/dev/null || true
+        fi
+        
+        # Show client connection instructions
+        echo ""
+        echo -e "${CYAN}📱 Client Connection Instructions:${NC}"
+        echo -e "   On each client machine, run:"
+        echo -e "   ${YELLOW}leap config${NC}     # Configure server IP"
+        echo -e "   ${YELLOW}leap start${NC}      # Connect to server"
+        
+        return 0
+    else
+        log_error "Failed to start Input Leap server"
+        rm -f "$PID_FILE"
+        return 1
+    fi
+}
+
+# Stop server
+stop_server() {
+    log_info "Stopping Input Leap Server..."
+    
+    if ! is_running; then
+        log_warn "Server is not running"
+        return 0
+    fi
+    
+    local pid
+    pid=$(cat "$PID_FILE")
+    
+    # Graceful shutdown
+    if kill "$pid" 2>/dev/null; then
+        # Wait for graceful shutdown
+        local count=0
+        while ps -p "$pid" > /dev/null 2>&1 && [[ $count -lt 10 ]]; do
+            sleep 1
+            ((count++))
+        done
+        
+        # Force kill if still running
+        if ps -p "$pid" > /dev/null 2>&1; then
+            kill -9 "$pid" 2>/dev/null || true
+        fi
+        
+        rm -f "$PID_FILE"
+        log_success "Input Leap server stopped"
+        
+        if command -v notify-send &> /dev/null; then
+            notify-send "Input Leap Server" "Server stopped" -t 3000 2>/dev/null || true
+        fi
+    else
+        log_error "Failed to stop server (PID: $pid)"
+        return 1
+    fi
+}
+
+# Generate input-leap configuration file
+generate_input_leap_config() {
+    local output_file="$1"
+    
+    log_info "Generating Input Leap configuration..."
+    
+    # Read our simplified config
+    source "$CONFIG_FILE"
+    
+    # Start building config
+    cat > "$output_file" << EOF
+section: screens
+    ${SERVER_NAME}:
+EOF
+    
+    # Add client screens
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^CLIENT_([^=]+)=\"([^,]+),([^\"]+)\"$ ]]; then
+            local client_name="${BASH_REMATCH[1],,}"  # lowercase
+            local client_ip="${BASH_REMATCH[2]}"
+            local position="${BASH_REMATCH[3]}"
+            
+            echo "    ${client_name}:" >> "$output_file"
+        fi
+    done < "$CONFIG_FILE"
+    
+    # Add links section
+    echo "section: links" >> "$output_file"
+    
+    # Add server links based on client positions
+    echo "    ${SERVER_NAME}:" >> "$output_file"
+    
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^CLIENT_([^=]+)=\"([^,]+),([^\"]+)\"$ ]]; then
+            local client_name="${BASH_REMATCH[1],,}"
+            local position="${BASH_REMATCH[3]}"
+            
+            echo "        $position = $client_name" >> "$output_file"
+        fi
+    done < "$CONFIG_FILE"
+    
+    # Add client links (reverse direction)
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^CLIENT_([^=]+)=\"([^,]+),([^\"]+)\"$ ]]; then
+            local client_name="${BASH_REMATCH[1],,}"
+            local position="${BASH_REMATCH[3]}"
+            
+            # Reverse position
+            local reverse_position
+            case "$position" in
+                "left") reverse_position="right" ;;
+                "right") reverse_position="left" ;;
+                "above") reverse_position="below" ;;
+                "below") reverse_position="above" ;;
+            esac
+            
+            echo "    ${client_name}:" >> "$output_file"
+            echo "        $reverse_position = ${SERVER_NAME}" >> "$output_file"
+        fi
+    done < "$CONFIG_FILE"
+    
+    echo "section: options" >> "$output_file"
+    echo "    heartbeat = 5000" >> "$output_file"
+    echo "    switchDelay = 300" >> "$output_file"
+    
+    log_success "Configuration generated: $output_file"
+}
+
+# Show help
+show_help() {
+    echo -e "${CYAN}Input Leap Server Manager${NC}"
+    echo ""
+    echo -e "${YELLOW}Usage:${NC} leap-server [command]"
+    echo ""
+    echo -e "${CYAN}Commands:${NC}"
+    echo "  start           Start the Input Leap server"
+    echo "  stop            Stop the Input Leap server"
+    echo "  status          Show server status and information"
+    echo "  config          Configure server settings (one-time setup)"
+    echo "  add-client      Add a client machine to the server"
+    echo "  help            Show this help message"
+    echo ""
+    echo -e "${CYAN}Examples:${NC}"
+    echo "  leap-server config      # Initial server setup"
+    echo "  leap-server add-client  # Add a client machine"
+    echo "  leap-server start       # Start the server"
+    echo "  leap-server status      # Check if running"
+    echo ""
+}
+
+# Main command handling
+main() {
+    local command="${1:-status}"
+    
+    case "$command" in
+        "start")
+            start_server
+            ;;
+        "stop")
+            stop_server
+            ;;
+        "status")
+            show_status
+            ;;
+        "config")
+            configure_server
+            ;;
+        "add-client")
+            add_client
+            ;;
+        "help"|"-h"|"--help")
+            show_help
+            ;;
+        *)
+            log_error "Unknown command: $command"
+            echo ""
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+# Run main function
+main "$@"

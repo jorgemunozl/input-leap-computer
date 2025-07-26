@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# Input Leap Client Manager - Simple client commands
+# Usage: leap-client [command]
+# Commands: start, stop, status, config, connect
+
+set -euo pipefail
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MANAGER="$SCRIPT_DIR/input-leap-manager"
+
+# Colors
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly CYAN='\033[0;36m'
+readonly NC='\033[0m'
+
+# Show help
+show_help() {
+    echo -e "${CYAN}Input Leap Client Manager${NC}"
+    echo ""
+    echo -e "${YELLOW}Usage:${NC} leap-client [command]"
+    echo ""
+    echo -e "${CYAN}Commands:${NC}"
+    echo "  connect         Connect to server (same as 'start')"
+    echo "  start           Connect to server"
+    echo "  stop            Disconnect from server"
+    echo "  status          Show connection status"
+    echo "  config          Configure server connection"
+    echo "  restart         Restart connection"
+    echo "  test            Test server connectivity"
+    echo "  logs            View connection logs"
+    echo "  help            Show this help message"
+    echo ""
+    echo -e "${CYAN}Examples:${NC}"
+    echo "  leap-client config      # Set server IP"
+    echo "  leap-client connect     # Connect to server"
+    echo "  leap-client status      # Check connection"
+    echo ""
+    echo -e "${YELLOW}💡 Quick setup:${NC}"
+    echo "  1. leap-client config   # Configure server IP"
+    echo "  2. leap-client connect  # Connect!"
+    echo ""
+}
+
+# Main command handling
+main() {
+    local command="${1:-status}"
+    
+    case "$command" in
+        "connect"|"start")
+            echo -e "${GREEN}🔗 Connecting to Input Leap server...${NC}"
+            exec "$MANAGER" start
+            ;;
+        "stop")
+            echo -e "${YELLOW}⏹️  Disconnecting from server...${NC}"
+            exec "$MANAGER" stop
+            ;;
+        "status")
+            exec "$MANAGER" status
+            ;;
+        "config")
+            echo -e "${CYAN}⚙️  Configuring server connection...${NC}"
+            exec "$MANAGER" config
+            ;;
+        "restart")
+            echo -e "${YELLOW}🔄 Restarting connection...${NC}"
+            exec "$MANAGER" restart
+            ;;
+        "test")
+            exec "$MANAGER" test
+            ;;
+        "logs")
+            exec "$MANAGER" logs
+            ;;
+        "help"|"-h"|"--help")
+            show_help
+            ;;
+        *)
+            echo -e "${YELLOW}Unknown command: $command${NC}"
+            echo ""
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+# Run main function
+main "$@"
