@@ -52,43 +52,56 @@ choose_network_setup() {
     echo -e "${PURPLE}🌐 Network Setup Choice${NC}"
     echo -e "${YELLOW}Choose your preferred network configuration:${NC}"
     echo ""
-    echo -e "${CYAN}1. Static Ethernet (RECOMMENDED)${NC} - Fixed IP on wired connection"
+    echo -e "${CYAN}1. Static Ethernet (169.254.135.230)${NC} - Primary client IP"
     echo -e "   ${BLUE}→ Most reliable, no DHCP issues, works without router${NC}"
-    echo -e "   ${BLUE}→ IP: 169.254.135.230 (link-local, always works)${NC}"
+    echo -e "   ${BLUE}→ Use this for your main/first client machine${NC}"
     echo ""
-    echo -e "${CYAN}2. Dynamic LAN/WiFi${NC} - Use existing DHCP network"
+    echo -e "${CYAN}2. Static Ethernet (169.254.135.231)${NC} - Secondary client IP"
+    echo -e "   ${BLUE}→ Same reliability as option 1, different IP${NC}"
+    echo -e "   ${BLUE}→ Use this for additional client machines${NC}"
+    echo ""
+    echo -e "${CYAN}3. Dynamic LAN/WiFi${NC} - Use existing DHCP network"
     echo -e "   ${BLUE}→ Uses your current network (WiFi/Ethernet)${NC}"
     echo -e "   ${BLUE}→ IP changes with DHCP, may need reconfiguration${NC}"
     echo ""
-    echo -e "${CYAN}3. Skip Network Setup${NC} - Configure manually later"
+    echo -e "${CYAN}4. Skip Network Setup${NC} - Configure manually later"
     echo -e "   ${BLUE}→ Install only, configure network with 'leap network' commands${NC}"
     echo ""
     
     while true; do
-        echo -n -e "${YELLOW}Enter your choice [1/2/3] (default: 1): ${NC}"
+        echo -n -e "${YELLOW}Enter your choice [1/2/3/4] (default: 1): ${NC}"
         read -r network_choice
         
-        # Default to static ethernet
+        # Default to static ethernet with .230
         network_choice=${network_choice:-1}
         
         case "$network_choice" in
             1)
                 export NETWORK_MODE="static"
-                echo -e "${GREEN}✅ Selected: Static Ethernet with link-local IP${NC}"
+                export STATIC_IP="169.254.135.230"
+                echo -e "${GREEN}✅ Selected: Static Ethernet (169.254.135.230) - Primary client${NC}"
                 break
                 ;;
             2)
-                export NETWORK_MODE="dynamic"
-                echo -e "${GREEN}✅ Selected: Dynamic LAN/WiFi networking${NC}"
+                export NETWORK_MODE="static"
+                export STATIC_IP="169.254.135.231"
+                echo -e "${GREEN}✅ Selected: Static Ethernet (169.254.135.231) - Secondary client${NC}"
                 break
                 ;;
             3)
+                export NETWORK_MODE="dynamic"
+                export STATIC_IP=""
+                echo -e "${GREEN}✅ Selected: Dynamic LAN/WiFi networking${NC}"
+                break
+                ;;
+            4)
                 export NETWORK_MODE="skip"
+                export STATIC_IP=""
                 echo -e "${GREEN}✅ Selected: Skip network setup (manual configuration)${NC}"
                 break
                 ;;
             *)
-                echo -e "${RED}❌ Invalid choice. Please enter 1, 2, or 3${NC}"
+                echo -e "${RED}❌ Invalid choice. Please enter 1, 2, 3, or 4${NC}"
                 ;;
         esac
     done

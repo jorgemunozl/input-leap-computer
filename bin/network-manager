@@ -318,6 +318,85 @@ auto_configure_ethernet_static() {
     fi
 }
 
+# Function to configure specific static IP address on best Ethernet interface
+configure_static_ip_address() {
+    local target_ip="$1"
+    log "Configuring Ethernet with specific static IP: $target_ip..."
+    
+    local interfaces
+    if ! interfaces=$(detect_interfaces); then
+        error "No network interfaces found!"
+        return 1
+    fi
+    
+    # Find Ethernet interfaces
+    local eth_interfaces
+    eth_interfaces=$(echo "$interfaces" | grep -E '^(eth|en)' || true)
+    
+    if [[ -z "$eth_interfaces" ]]; then
+        warn "No Ethernet interfaces found!"
+        echo -e "${YELLOW}Available interfaces:${NC}"
+        echo "$interfaces"
+        return 1
+    fi
+    
+    log "Found Ethernet interfaces: $eth_interfaces"
+    
+    # Try to configure the first available Ethernet interface
+    local target_interface
+    target_interface=$(echo "$eth_interfaces" | head -1)
+    
+    if [[ -n "$target_interface" ]]; then
+        log "Configuring primary Ethernet interface: $target_interface"
+        
+        if configure_static_ip "$target_interface" "$target_ip" "16"; then
+            log "✓ Successfully configured static IP on $target_interface"
+            
+            # Test the interface
+            sleep 2
+            if ip addr show "$target_interface" | grep -q "$target_ip"; then
+                log "✓ Static IP configuration verified"
+                
+                # Show the configuration
+                echo ""
+                info "📡 Ethernet interface configured:"
+                printf "   Interface: ${CYAN}%s${NC}\n" "$target_interface"
+                printf "   Static IP: ${GREEN}%s/16${NC}\n" "$target_ip"
+                printf "   Network:   ${BLUE}169.254.0.0/16${NC} (Link-Local)\n"
+                echo ""
+                
+                # Provide server configuration tips based on the IP chosen
+                case "$target_ip" in
+                    "169.254.135.230")
+                        echo -e "${YELLOW}💡 Server configuration for primary client:${NC}"
+                        echo -e "${YELLOW}   Configure server with client IP: 169.254.135.230${NC}"
+                        echo -e "${YELLOW}   Suggested server IP: 169.254.135.231${NC}"
+                        ;;
+                    "169.254.135.231")
+                        echo -e "${YELLOW}💡 Server configuration for secondary client:${NC}"
+                        echo -e "${YELLOW}   Configure server with client IP: 169.254.135.231${NC}"
+                        echo -e "${YELLOW}   Your server should already be on: 169.254.135.230 or other IP${NC}"
+                        ;;
+                    *)
+                        echo -e "${YELLOW}💡 Configure your server to use IP in range: 169.254.x.x${NC}"
+                        ;;
+                esac
+                
+                return 0
+            else
+                error "Static IP configuration failed verification"
+                return 1
+            fi
+        else
+            error "Failed to configure static IP on $target_interface"
+            return 1
+        fi
+    else
+        error "No suitable Ethernet interface found"
+        return 1
+    fi
+}
+
 # Function to manually configure static IP
 manual_static_ip() {
     local interface="$1"
@@ -553,6 +632,14 @@ main() {
         "auto_ethernet_static")
             # Alias for setup script use
             auto_configure_ethernet_static
+            ;;
+        "static_ip")
+            # Configure static IP with specified address
+            if [[ -z "${2:-}" ]]; then
+                error "IP address required. Usage: $0 static_ip <ip_address>"
+                exit 1
+            fi
+            configure_static_ip_address "$2"
             ;;
         "static")
             # Handle different static IP scenarios

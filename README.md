@@ -36,7 +36,8 @@ cd input-leap
 ```
 
 **🔧 During setup, you'll choose:**
-- **Static Ethernet** (recommended) - Fixed IP for reliable connections
+- **Static Ethernet (169.254.135.230)** - Primary client, most reliable
+- **Static Ethernet (169.254.135.231)** - Secondary client, for additional machines  
 - **Dynamic LAN/WiFi** - Use existing network (may need reconfiguration)
 - **Manual setup** - Configure network later with `leap network` commands
 
@@ -47,7 +48,8 @@ cd input-leap
 # On your main computer:
 sudo pacman -S input-leap    # Install Input Leap server
 input-leap-server --config  # Configure in GUI
-# Add client IP: 169.254.135.230 (if using static IP)
+# Add client IP: 169.254.135.230 (if using static IP option 1)
+# OR: 169.254.135.231 (if using static IP option 2)
 # Set screen position (left/right/top/bottom)
 # Start the server
 ```
@@ -147,9 +149,10 @@ cd input-leap
 ```
 
 **🌐 Network Choice:** During setup, you'll choose your preferred network configuration:
-- **Static Ethernet** (most reliable, fixed IP)
-- **Dynamic LAN/WiFi** (uses existing network)  
-- **Manual setup** (configure later)
+- **Static Ethernet (169.254.135.230)** - Primary client, most reliable
+- **Static Ethernet (169.254.135.231)** - Secondary client, for multiple machines
+- **Dynamic LAN/WiFi** - Uses existing network  
+- **Manual setup** - Configure later
 
 **🔐 Seamless Installation:** Script automatically validates sudo access upfront!
 
@@ -258,7 +261,8 @@ leap network test HOST  # 🔍 Test server connectivity
 leap network check      # ✅ Check configured Input Leap server
 
 # Static IP commands (for reliable connections)
-leap network static                          # Auto-setup 169.254.135.230/16
+leap network static                          # Auto-setup 169.254.135.230/16 (primary)
+leap network static_ip 169.254.135.231      # Setup with secondary IP
 leap network static enxc8a362 169.254.135.230  # Custom interface & IP
 leap network static eth0 192.168.1.100 24   # Custom IP with netmask
 
