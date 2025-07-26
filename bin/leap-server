@@ -15,8 +15,8 @@ readonly CYAN='\033[0;36m'
 readonly NC='\033[0m'
 
 # Paths
-readonly CONFIG_DIR="$HOME/.config/input-leap-server"
-readonly CONFIG_FILE="$CONFIG_DIR/server.conf"
+readonly CONFIG_DIR="$HOME/.config/InputLeap"
+readonly CONFIG_FILE="$CONFIG_DIR/leap-server.conf"
 readonly LOG_FILE="$HOME/.cache/input-leap/server.log"
 readonly PID_FILE="/tmp/input-leap-server.pid"
 
@@ -46,7 +46,7 @@ mkdir -p "$CONFIG_DIR" "$(dirname "$LOG_FILE")"
 
 # Check if server is installed
 check_installation() {
-    if ! command -v input-leap-server &> /dev/null; then
+    if ! command -v input-leaps &> /dev/null; then
         log_error "Input Leap server not found!"
         echo ""
         echo -e "${YELLOW}💡 Install with:${NC}"
@@ -125,11 +125,10 @@ configure_server() {
     echo -e "${CYAN}🖥️  Input Leap Server Configuration${NC}"
     echo ""
     
-    # Get server IP automatically
-    local server_ip
-    server_ip=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "127.0.0.1")
+    # Use static IP for ethernet setup
+    local server_ip="169.254.135.230"
     
-    echo -e "${YELLOW}Server Information:${NC}"
+    echo -e "${CYAN}📡 Ethernet Setup (Static IP):${NC}"
     echo -e "   Server IP: ${BLUE}$server_ip${NC}"
     echo -e "   Server Port: ${BLUE}24800${NC} (default)"
     echo ""
@@ -168,31 +167,31 @@ add_client() {
     echo -e "${CYAN}➕ Add Client Configuration${NC}"
     echo ""
     
-    # Get client details
-    echo -n -e "${YELLOW}Enter client name: ${NC}"
+    # Get client name only (IP is automatic for ethernet)
+    echo -n -e "${YELLOW}Enter client name [archlinux]: ${NC}"
     read -r client_name
     
+    # Default to archlinux if empty
     if [[ -z "$client_name" ]]; then
-        log_error "Client name cannot be empty"
-        return 1
+        client_name="archlinux"
     fi
     
-    echo -n -e "${YELLOW}Enter client IP address: ${NC}"
-    read -r client_ip
-    
-    if [[ -z "$client_ip" ]]; then
-        log_error "Client IP cannot be empty"
-        return 1
-    fi
+    # Auto-assign IP for ethernet setup
+    local client_ip="169.254.135.231"
     
     echo ""
+    echo -e "${CYAN}📡 Ethernet Setup (Static IP):${NC}"
+    echo -e "   Server IP: ${BLUE}169.254.135.230${NC} (this machine)"
+    echo -e "   Client IP: ${BLUE}$client_ip${NC} (auto-assigned)"
+    echo ""
+    
     echo -e "${YELLOW}Screen position relative to server:${NC}"
     echo -e "   ${CYAN}1. Left${NC}   - Client is to the left of server"
-    echo -e "   ${CYAN}2. Right${NC}  - Client is to the right of server"
+    echo -e "   ${CYAN}2. Right${NC}  - Client is to the right of server ${YELLOW}(default)${NC}"
     echo -e "   ${CYAN}3. Above${NC}  - Client is above server"
     echo -e "   ${CYAN}4. Below${NC}  - Client is below server"
     echo ""
-    echo -n -e "${YELLOW}Choose position [1-4]: ${NC}"
+    echo -n -e "${YELLOW}Choose position [1-4, Enter for right]: ${NC}"
     read -r position_choice
     
     local position
@@ -243,15 +242,18 @@ start_server() {
     
     # Start server
     log_info "Starting Input Leap server daemon..."
-    nohup input-leap-server --config "$input_leap_config" \
-        >> "$LOG_FILE" 2>&1 &
+    input-leaps --config "$input_leap_config" --daemon \
+        >> "$LOG_FILE" 2>&1
     
-    local pid=$!
-    echo "$pid" > "$PID_FILE"
+    # Wait for it to start and find the PID
+    sleep 3
     
-    # Wait and verify
-    sleep 2
-    if ps -p "$pid" > /dev/null 2>&1; then
+    # Check if it's running by looking for the process
+    local pid
+    pid=$(pgrep -f "input-leaps.*input-leap.conf")
+    
+    if [[ -n "$pid" ]]; then
+        echo "$pid" > "$PID_FILE"
         log_success "Input Leap server started (PID: $pid)"
         
         # Show connection info
@@ -327,7 +329,7 @@ generate_input_leap_config() {
     # Start building config
     cat > "$output_file" << EOF
 section: screens
-    ${SERVER_NAME}:
+	${SERVER_NAME}:
 EOF
     
     # Add client screens
@@ -337,22 +339,25 @@ EOF
             local client_ip="${BASH_REMATCH[2]}"
             local position="${BASH_REMATCH[3]}"
             
-            echo "    ${client_name}:" >> "$output_file"
+            echo -e "\t${client_name}:" >> "$output_file"
         fi
     done < "$CONFIG_FILE"
+    
+    echo "end" >> "$output_file"
+    echo "" >> "$output_file"
     
     # Add links section
     echo "section: links" >> "$output_file"
     
     # Add server links based on client positions
-    echo "    ${SERVER_NAME}:" >> "$output_file"
+    echo -e "\t${SERVER_NAME}:" >> "$output_file"
     
     while IFS= read -r line; do
         if [[ "$line" =~ ^CLIENT_([^=]+)=\"([^,]+),([^\"]+)\"$ ]]; then
             local client_name="${BASH_REMATCH[1],,}"
             local position="${BASH_REMATCH[3]}"
             
-            echo "        $position = $client_name" >> "$output_file"
+            echo -e "\t\t$position = $client_name" >> "$output_file"
         fi
     done < "$CONFIG_FILE"
     
@@ -371,14 +376,18 @@ EOF
                 "below") reverse_position="above" ;;
             esac
             
-            echo "    ${client_name}:" >> "$output_file"
-            echo "        $reverse_position = ${SERVER_NAME}" >> "$output_file"
+            echo -e "\t${client_name}:" >> "$output_file"
+            echo -e "\t\t$reverse_position = ${SERVER_NAME}" >> "$output_file"
         fi
     done < "$CONFIG_FILE"
     
+    echo "end" >> "$output_file"
+    echo "" >> "$output_file"
+    
     echo "section: options" >> "$output_file"
-    echo "    heartbeat = 5000" >> "$output_file"
-    echo "    switchDelay = 300" >> "$output_file"
+    echo -e "\theartbeat = 5000" >> "$output_file"
+    echo -e "\tswitchDelay = 300" >> "$output_file"
+    echo "end" >> "$output_file"
     
     log_success "Configuration generated: $output_file"
 }
