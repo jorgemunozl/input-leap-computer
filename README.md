@@ -51,12 +51,16 @@ input-leap-server --config  # Configure in GUI
 # Add client IP: 169.254.135.230 (if using static IP option 1)
 # OR: 169.254.135.231 (if using static IP option 2)
 # Set screen position (left/right/top/bottom)
-# Start the server
+# Click "Start" in the server GUI  ← IMPORTANT: Start the server!
 ```
 
-**⚠️ CRITICAL:** The server does NOT start automatically! You must:
+**⚠️ CRITICAL DIFFERENCES:**
+- **SERVER**: Uses GUI, click "Start" button, no `leap` commands
+- **CLIENT**: Uses terminal, runs `leap start` command
+
+**⚠️ IMPORTANT:** The server does NOT start automatically! You must:
 1. **Configure it once** (add this client machine)
-2. **Start it manually** every time you want to use Input Leap
+2. **Start it manually** every time you want to use Input Leap (click "Start" in GUI)
 3. **Keep it running** while using Input Leap
 
 ### **Step 3: Connect!**
@@ -66,10 +70,19 @@ leap start                   # Connect to server
 leap status                  # Check connection
 ```
 
+**🔄 Complete workflow:**
+1. **SERVER**: Start Input Leap Server GUI → Click "Start" 
+2. **CLIENT**: Run `leap start` in terminal
+3. **Result**: Mouse/keyboard sharing active! 🎉
+
 **🔄 How it works:**
 - **Server OFF** → Client cannot connect (will show "server unreachable")
-- **Server ON** → Client connects automatically (if auto-start enabled)
+- **Server ON** (GUI started) → Client connects automatically (if auto-start enabled)
 - **Server STOPS** → Client disconnects automatically
+
+**💡 Remember:**
+- **SERVER**: Start with GUI (Input Leap Server application)
+- **CLIENT**: Start with terminal (`leap start`)
 
 ### **Step 4: Use It!**
 - Move mouse to screen edge → control switches to client
@@ -85,16 +98,17 @@ leap status                  # Check connection
 3. **Resources**: Only runs when you actually need it
 
 **The workflow is:**
-1. **Main computer**: Start Input Leap server manually
-2. **This machine**: Connects automatically (if configured)
+1. **Main computer**: Start Input Leap Server GUI → Click "Start"
+2. **This machine**: Connects automatically with `leap start`
 3. **Use Input Leap**: Move mouse/keyboard seamlessly
-4. **Done**: Stop server when finished
+4. **Done**: Stop server GUI when finished
 
 **Common mistakes:**
-- ❌ Expecting server to start automatically
-- ❌ Forgetting to configure client IP on server
-- ❌ Not starting server before trying to connect
-- ✅ Start server manually, client connects automatically
+- ❌ Expecting server to start automatically 
+- ❌ Running `leap start` on server (wrong - use GUI instead)
+- ❌ Forgetting to click "Start" in server GUI
+- ❌ Not starting server before trying to connect client
+- ✅ Start server GUI first, then run `leap start` on client
 
 ## �🤗 For Complete Beginners
 

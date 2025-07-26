@@ -368,10 +368,30 @@ start_client() {
         
         # Ensure GNOME accessibility bus is available
         if [[ -z "${AT_SPI_BUS_ADDRESS:-}" ]] && command -v gsettings &>/dev/null; then
-            # Start accessibility bus if not running
-            if ! pgrep -x at-spi-bus-launcher >/dev/null; then
-                /usr/lib/at-spi2-core/at-spi-bus-launcher --launch-immediately &
-                sleep 1
+            # Start accessibility bus if not running (use -f flag for long process names)
+            if ! pgrep -f at-spi-bus-launcher >/dev/null; then
+                # Try different possible paths for at-spi-bus-launcher
+                local launcher_paths=(
+                    "/usr/lib/at-spi2-core/at-spi-bus-launcher"
+                    "/usr/libexec/at-spi-bus-launcher"
+                    "/usr/lib/at-spi2/at-spi-bus-launcher"
+                    "at-spi-bus-launcher"  # Try from PATH
+                )
+                
+                local launcher_found=false
+                for launcher_path in "${launcher_paths[@]}"; do
+                    if command -v "$launcher_path" &>/dev/null || [[ -x "$launcher_path" ]]; then
+                        log_info "Starting accessibility bus: $launcher_path"
+                        "$launcher_path" --launch-immediately &
+                        launcher_found=true
+                        sleep 1
+                        break
+                    fi
+                done
+                
+                if [[ "$launcher_found" == false ]]; then
+                    log_warn "at-spi-bus-launcher not found, accessibility may be limited"
+                fi
             fi
         fi
         
@@ -394,6 +414,12 @@ start_client() {
     fi
     
     log_info "Starting Input Leap client: $client_binary"
+    
+    # Enhanced environment setup for better compatibility
+    export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-x11}"
+    export GDK_BACKEND="${GDK_BACKEND:-x11}"
+    
+    # Start client with enhanced error logging
     nohup "$client_binary" \
         --name "$CLIENT_NAME" \
         "$SERVER_HOST:$SERVER_PORT" \
@@ -402,8 +428,8 @@ start_client() {
     local pid=$!
     echo "$pid" > "$PID_FILE"
     
-    # Wait a moment and check if it started successfully
-    sleep 2
+    # Wait and check with enhanced diagnostics
+    sleep 3
     if ps -p "$pid" > /dev/null 2>&1; then
         log_success "Input Leap client started (PID: $pid)"
         
@@ -425,6 +451,26 @@ start_client() {
         return 0
     else
         log_error "Failed to start Input Leap client"
+        
+        # Enhanced error diagnostics
+        echo ""
+        log_error "🔍 Diagnostics:"
+        
+        # Check recent log entries
+        if [[ -f "$LOG_FILE" ]]; then
+            echo -e "${YELLOW}Recent log entries:${NC}"
+            tail -10 "$LOG_FILE" | while IFS= read -r line; do
+                echo -e "   ${CYAN}$line${NC}"
+            done
+        fi
+        
+        echo ""
+        echo -e "${YELLOW}💡 Common solutions:${NC}"
+        echo -e "   ${CYAN}1. Check server is running: ps aux | grep input-leap-server${NC}"
+        echo -e "   ${CYAN}2. Verify server IP: leap network test $SERVER_HOST:$SERVER_PORT${NC}"
+        echo -e "   ${CYAN}3. Check server config: Make sure client $CLIENT_NAME is added${NC}"
+        echo -e "   ${CYAN}4. Restart server and try again${NC}"
+        
         rm -f "$PID_FILE" "$LOCK_FILE"
         return 1
     fi
