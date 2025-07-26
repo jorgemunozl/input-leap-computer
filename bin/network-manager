@@ -208,10 +208,12 @@ configure_static_ip() {
         info "Removing existing IP addresses from $interface..."
         while IFS= read -r ip; do
             if [[ -n "$ip" ]]; then
+                log "Removing IP: $ip"
                 sudo ip addr del "$ip" dev "$interface" 2>/dev/null || true
-                info "Removed IP: $ip"
             fi
         done <<< "$existing_ips"
+        # Wait a moment for the removal to take effect
+        sleep 1
     fi
     
     # Bring interface up
@@ -349,11 +351,32 @@ configure_static_ip_address() {
     if [[ -n "$target_interface" ]]; then
         log "Configuring primary Ethernet interface: $target_interface"
         
+        # Check if interface already has a different IP in the same range
+        local existing_ip
+        existing_ip=$(ip addr show "$target_interface" 2>/dev/null | grep 'inet 169\.254\.' | awk '{print $2}' | cut -d'/' -f1 || true)
+        
+        if [[ -n "$existing_ip" && "$existing_ip" != "$target_ip" ]]; then
+            log "Found existing IP $existing_ip, replacing with $target_ip..."
+            # Remove the specific existing IP
+            sudo ip addr del "$existing_ip/16" dev "$target_interface" 2>/dev/null || true
+            sleep 1
+        fi
+        
         if configure_static_ip "$target_interface" "$target_ip" "16"; then
             log "✓ Successfully configured static IP on $target_interface"
             
-            # Test the interface
-            sleep 2
+            # Test the interface with retries
+            local retry_count=0
+            local max_retries=5
+            while [[ $retry_count -lt $max_retries ]]; do
+                sleep 1
+                if ip addr show "$target_interface" | grep -q "$target_ip"; then
+                    break
+                fi
+                ((retry_count++))
+                log "Waiting for IP configuration to take effect... ($retry_count/$max_retries)"
+            done
+            
             if ip addr show "$target_interface" | grep -q "$target_ip"; then
                 log "✓ Static IP configuration verified"
                 
@@ -384,7 +407,9 @@ configure_static_ip_address() {
                 
                 return 0
             else
-                error "Static IP configuration failed verification"
+                error "Static IP configuration failed verification after retries"
+                log "Current interface status:"
+                ip addr show "$target_interface" || true
                 return 1
             fi
         else
@@ -678,6 +703,21 @@ main() {
             ;;
         "check")
             check_server_config
+            ;;
+        "debug")
+            # Debug network status
+            echo -e "${CYAN}=== Network Debug Information ===${NC}"
+            echo ""
+            echo -e "${YELLOW}Current IP addresses:${NC}"
+            ip addr show | grep -E "^[0-9]+:|inet " || true
+            echo ""
+            echo -e "${YELLOW}Network configuration file:${NC}"
+            if [[ -f "$NETWORK_CONFIG" ]]; then
+                cat "$NETWORK_CONFIG"
+            else
+                echo "No network configuration file found"
+            fi
+            echo ""
             ;;
         "reset")
             log "Resetting network configuration..."
