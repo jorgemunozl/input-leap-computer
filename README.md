@@ -309,7 +309,7 @@ leap test       # Test connection with helpful tips
 # NEW: Minimalist server management
 leap-server config      # Configure server (one-time)
 leap-server add-client  # Add client machine
-leap-server start       # Start server
+leap-server start       # Start Input Leap server
 leap-server stop        # Stop server
 leap-server status      # Check server status
 ```
@@ -479,6 +479,24 @@ input-leap/
 ## 📄 License
 
 MIT License - see LICENSE file for details.
+
+---
+
+## 🛣️ Make leap/leap-server Available Everywhere
+
+To use `leap`, `leap-server`, and all related commands from any directory, add the `bin` folder to your PATH:
+
+```bash
+# Add this to your ~/.bashrc (or ~/.zshrc)
+export PATH="$HOME/project/githubProjects/input-leap/bin:$PATH"
+```
+
+Then reload your shell:
+```bash
+source ~/.bashrc
+```
+
+Now you can run `leap`, `leap-server`, etc. from anywhere!
 
 ---
 

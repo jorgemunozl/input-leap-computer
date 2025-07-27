@@ -780,6 +780,8 @@ setup_shell_integration() {
     fi
 }
 
+
+
 # Configure network and Input Leap server based on user choice
 configure_network_and_server() {
     case "$NETWORK_MODE" in
