@@ -1,10 +1,13 @@
+
 #!/bin/bash
+set -euo pipefail
 
 # connect_input_leap.sh - Automatically connect to an Input Leap server on login
 # Usage: scripts/connect_input_leap.sh [start|stop|restart|status|config]
 
 # Configuration files
-CONFIG="$HOME/.config/input-leap.conf"
+CONFIG_DIR="$HOME/.config/input-leap"
+CONFIG="$CONFIG_DIR/input-leap.conf"
 LOG="$HOME/.cache/input-leap.log"
 PIDFILE="$HOME/.cache/input-leap.pid"
 
@@ -16,7 +19,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Ensure cache and config directories exist
-mkdir -p "$(dirname "$CONFIG")"
+mkdir -p "$CONFIG_DIR"
 mkdir -p "$(dirname "$LOG")"
 
 # Function to log messages
@@ -111,7 +114,8 @@ start_client() {
         echo -e "${YELLOW}⚠️  No configuration found. Setting up...${NC}"
         configure_server
     fi
-    
+
+    # shellcheck source=/dev/null
     source "$CONFIG"
     
     # Validate server address

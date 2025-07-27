@@ -1,4 +1,6 @@
+
 #!/bin/bash
+set -euo pipefail
 
 # install_input_leap.sh - Install and configure Input Leap for automatic connection
 # Run this script to set up Input Leap client on your laptop
@@ -19,6 +21,10 @@ if [[ $EUID -eq 0 ]]; then
    echo -e "${RED}❌ Don't run this script as root! Use your regular user account.${NC}"
    exit 1
 fi
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG_DIR="$HOME/.config/input-leap"
+SCRIPT_PATH="$PROJECT_ROOT/bin/connect_input_leap.sh"
 
 # Function to install Input Leap
 install_input_leap() {
@@ -66,26 +72,9 @@ setup_systemd_service() {
     
     # Create systemd user directory if it doesn't exist
     mkdir -p "$HOME/.config/systemd/user"
-    
-    # Copy service file
-    if [ -f "/home/jorge/dotfiles/.config/systemd/user/input-leap.service" ]; then
-        cp "/home/jorge/dotfiles/.config/systemd/user/input-leap.service" "$HOME/.config/systemd/user/"
-        
-        # Update the service file to use correct path
-        sed -i "s|%h/dotfiles/scripts/connect_input_leap.sh|$HOME/dotfiles/scripts/connect_input_leap.sh|g" "$HOME/.config/systemd/user/input-leap.service"
-        
-        # Reload systemd and enable service
-        systemctl --user daemon-reload
-        
-        echo -e "${GREEN}✓ Systemd service configured${NC}"
-        echo "To enable auto-start on login:"
-        echo "  systemctl --user enable input-leap.service"
-        echo "To start now:"
-        echo "  systemctl --user start input-leap.service"
-    else
-        echo -e "${YELLOW}⚠️  Service file not found, creating basic service...${NC}"
-        
-        cat > "$HOME/.config/systemd/user/input-leap.service" << EOF
+
+    # Always create a basic service file using the project root
+    cat > "$HOME/.config/systemd/user/input-leap.service" << EOF
 [Unit]
 Description=Input Leap Client Auto Connect
 After=network-online.target
@@ -93,27 +82,26 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=$HOME/dotfiles/scripts/connect_input_leap.sh
+ExecStart=$SCRIPT_PATH
 Restart=on-failure
 RestartSec=5
 
 [Install]
 WantedBy=default.target
 EOF
-        
-        systemctl --user daemon-reload
-        echo -e "${GREEN}✓ Basic systemd service created${NC}"
-    fi
+    systemctl --user daemon-reload
+    echo -e "${GREEN}✓ Systemd service created${NC}"
+    echo "To enable auto-start on login:"
+    echo "  systemctl --user enable input-leap.service"
+    echo "To start now:"
+    echo "  systemctl --user start input-leap.service"
 }
 
 # Function to configure Input Leap
 configure_input_leap() {
     echo -e "${BLUE}🔧 Configuring Input Leap...${NC}"
     echo ""
-    
-    # Run the configuration
-    /home/jorge/dotfiles/scripts/connect_input_leap.sh config
-    
+    "$SCRIPT_PATH" config
     echo ""
     echo -e "${GREEN}✓ Configuration completed${NC}"
 }
@@ -143,7 +131,7 @@ main() {
     fi
     
     # Step 2: Make script executable
-    chmod +x /home/jorge/dotfiles/scripts/connect_input_leap.sh
+    chmod +x "$SCRIPT_PATH"
     echo -e "${GREEN}✓ Connection script is ready${NC}"
     
     # Step 3: Setup systemd service
@@ -166,7 +154,7 @@ main() {
     echo "  systemctl --user start input-leap.service    # Start now"
     echo ""
     echo "Manual usage:"
-    echo "  /home/jorge/dotfiles/scripts/connect_input_leap.sh"
+    echo "  $SCRIPT_PATH"
 }
 
 # Run main function
