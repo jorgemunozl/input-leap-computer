@@ -1,10 +1,13 @@
+
 #!/bin/bash
+set -euo pipefail
 
 # auto_input_leap.sh - Quick setup for Input Leap auto-connection
 # Add this to your .bashrc or login scripts
 
-# Path to the Input Leap connection script
-LEAP_SCRIPT="$HOME/dotfiles/scripts/connect_input_leap.sh"
+# Path to the Input Leap connection script (project-relative)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LEAP_SCRIPT="$PROJECT_ROOT/bin/connect_input_leap.sh"
 
 # Only run if the script exists and Input Leap is installed
 if [ -x "$LEAP_SCRIPT" ] && command -v input-leap-client &> /dev/null; then
