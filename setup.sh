@@ -27,49 +27,53 @@ readonly USER_CACHE="$HOME/.cache/input-leap"
 readonly USER_SYSTEMD="$HOME/.config/systemd/user"
 
 # Validate sudo access early
-validate_sudo() {
-    echo -e "${BLUE}🔐 Checking sudo access for seamless installation...${NC}"
-    
-    if ! sudo -v; then
-        echo -e "${RED}❌ ERROR: Need sudo access to install packages and configure system${NC}"
-        echo -e "${YELLOW}💡 TIP: Enter your password when prompted${NC}"
-        exit 1
+install_input_leap() {
+    if [[ "${SKIP_INSTALLATION:-false}" == "true" ]]; then
+        log_info "Skipping Input Leap installation (user chose to keep current installation)"
+        return 0
+    fi
+    log_info "Installing Input Leap..."
+    # Try official package first
+    if pacman -Qi input-leap &> /dev/null; then
+        log_success "Input Leap already installed (official package)"
+        return 0
     fi
     
-    echo -e "${GREEN}✅ Sudo access validated!${NC}"
-}
-
-# Ask user about network preference
-choose_network_setup() {
-    echo ""
-    echo -e "${PURPLE}🌐 Network Setup Choice${NC}"
-    echo -e "${YELLOW}Choose your preferred network configuration:${NC}"
-    echo ""
-    echo -e "${CYAN}1. Static Ethernet (169.254.135.230)${NC} - Primary client IP"
-    echo -e "   ${BLUE}→ Most reliable, no DHCP issues, works without router${NC}"
-    echo -e "   ${BLUE}→ Use this for your main/first client machine${NC}"
-    echo ""
-    echo -e "${CYAN}2. Static Ethernet (169.254.135.231)${NC} - Secondary client IP"
-    echo -e "   ${BLUE}→ Same reliability as option 1, different IP${NC}"
-    echo -e "   ${BLUE}→ Use this for additional client machines${NC}"
-    echo ""
-    echo -e "${CYAN}3. Dynamic LAN/WiFi${NC} - Use existing DHCP network"
-    echo -e "   ${BLUE}→ Uses your current network (WiFi/Ethernet)${NC}"
-    echo -e "   ${BLUE}→ IP changes with DHCP, may need reconfiguration${NC}"
-    echo ""
-    echo -e "${CYAN}4. Skip Network Setup${NC} - Configure manually later"
-    echo -e "   ${BLUE}→ Install only, configure network with 'leap network' commands${NC}"
-    echo ""
+    # Try AUR package
+    if pacman -Qi input-leap-git &> /dev/null; then
+        log_success "Input Leap already installed (AUR package)"
+        return 0
+    fi
     
-    while true; do
-        echo -n -e "${YELLOW}Enter your choice [1/2/3/4] (default: 1): ${NC}"
-        read -r network_choice
+    # Try official repo first
+    if sudo pacman -S --needed --noconfirm input-leap 2>/dev/null; then
+        log_success "Input Leap installed from official repository"
+        return 0
+    fi
+    
+    # Fall back to AUR
+    log_warn "Official package not found, trying AUR..."
+    
+    # Install yay if needed
+    if ! command -v yay &> /dev/null; then
+        log_info "Installing yay AUR helper..."
+        sudo pacman -S --needed --noconfirm base-devel git
         
-        # Default to static ethernet with .230
-        network_choice=${network_choice:-1}
-        
-        case "$network_choice" in
-            1)
+        local temp_dir=$(mktemp -d)
+        git clone https://aur.archlinux.org/yay.git "$temp_dir/yay"
+        cd "$temp_dir/yay"
+        makepkg -si --noconfirm
+        cd "$PROJECT_ROOT"
+        rm -rf "$temp_dir"
+    fi
+    
+    if yay -S --needed --noconfirm input-leap-git; then
+        log_success "Input Leap installed from AUR"
+    else
+        log_error "Failed to install Input Leap"
+        exit 1
+    fi
+}
                 export NETWORK_MODE="static"
                 export STATIC_IP="169.254.135.230"
                 echo -e "${GREEN}✅ Selected: Static Ethernet (169.254.135.230) - Primary client${NC}"
