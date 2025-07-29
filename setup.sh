@@ -317,8 +317,8 @@ check_existing_installation() {
                 SKIP_INSTALLATION=false
                 ;;
             3)
-                log_info "Exiting setup. Current installation preserved."
-                exit 0
+                log_info "Keeping current installation, skipping re-install. Continuing with configuration and network setup."
+                SKIP_INSTALLATION=true
                 ;;
             *)
                 log_info "Invalid choice. Continuing with configuration setup only..."
