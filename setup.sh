@@ -26,83 +26,6 @@ readonly USER_CONFIG="$HOME/.config/input-leap"
 readonly USER_CACHE="$HOME/.cache/input-leap"
 readonly USER_SYSTEMD="$HOME/.config/systemd/user"
 
-# Validate sudo access early
-install_input_leap() {
-    if [[ "${SKIP_INSTALLATION:-false}" == "true" ]]; then
-        log_info "Skipping Input Leap installation (user chose to keep current installation)"
-        return 0
-    fi
-    log_info "Installing Input Leap..."
-    # Try official package first
-    if pacman -Qi input-leap &> /dev/null; then
-        log_success "Input Leap already installed (official package)"
-        return 0
-    fi
-    
-    # Try AUR package
-    if pacman -Qi input-leap-git &> /dev/null; then
-        log_success "Input Leap already installed (AUR package)"
-        return 0
-    fi
-    
-    # Try official repo first
-    if sudo pacman -S --needed --noconfirm input-leap 2>/dev/null; then
-        log_success "Input Leap installed from official repository"
-        return 0
-    fi
-    
-    # Fall back to AUR
-    log_warn "Official package not found, trying AUR..."
-    
-    # Install yay if needed
-    if ! command -v yay &> /dev/null; then
-        log_info "Installing yay AUR helper..."
-        sudo pacman -S --needed --noconfirm base-devel git
-        
-        local temp_dir=$(mktemp -d)
-        git clone https://aur.archlinux.org/yay.git "$temp_dir/yay"
-        cd "$temp_dir/yay"
-        makepkg -si --noconfirm
-        cd "$PROJECT_ROOT"
-        rm -rf "$temp_dir"
-    fi
-    
-    if yay -S --needed --noconfirm input-leap-git; then
-        log_success "Input Leap installed from AUR"
-    else
-        log_error "Failed to install Input Leap"
-        exit 1
-    fi
-}
-                export NETWORK_MODE="static"
-                export STATIC_IP="169.254.135.230"
-                echo -e "${GREEN}✅ Selected: Static Ethernet (169.254.135.230) - Primary client${NC}"
-                break
-                ;;
-            2)
-                export NETWORK_MODE="static"
-                export STATIC_IP="169.254.135.231"
-                echo -e "${GREEN}✅ Selected: Static Ethernet (169.254.135.231) - Secondary client${NC}"
-                break
-                ;;
-            3)
-                export NETWORK_MODE="dynamic"
-                export STATIC_IP=""
-                echo -e "${GREEN}✅ Selected: Dynamic LAN/WiFi networking${NC}"
-                break
-                ;;
-            4)
-                export NETWORK_MODE="skip"
-                export STATIC_IP=""
-                echo -e "${GREEN}✅ Selected: Skip network setup (manual configuration)${NC}"
-                break
-                ;;
-            *)
-                echo -e "${RED}❌ Invalid choice. Please enter 1, 2, 3, or 4${NC}"
-                ;;
-        esac
-    done
-}
 
 # Fool-proof checks
 check_environment() {
@@ -189,10 +112,10 @@ check_environment() {
 print_banner() {
     echo -e "${CYAN}"
     echo "╔═══════════════════════════════════════════════════════════════╗"
-    echo "║                🖱️  ARCH LINUX INPUT LEAP SETUP 🖱️                ║"
+    echo "║                🖱️  ARCH LINUX INPUT LEAP SETUP 🖱️             ║"
     echo "║                                                               ║"
-    echo "║         Streamlined automation for Arch Linux users          ║"
-    echo "║            Turn on your client and you're ready!             ║"
+    echo "║         Streamlined automation for Arch Linux users           ║"
+    echo "║            Turn on your client and you're ready!              ║"
     echo "╚═══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -322,7 +245,8 @@ check_existing_installation() {
                 ;;
             3)
                 log_info "Keeping current installation, skipping re-install. Continuing with configuration and network setup."
-                SKIP_INSTALLATION=true
+                echo -e "${GREEN}👋 Setup aborted by user.${NC}"
+                exit 0
                 ;;
             *)
                 log_info "Invalid choice. Continuing with configuration setup only..."
@@ -874,58 +798,159 @@ show_usage() {
     echo ""
 }
 
+validate_sudo() {
+    if ! sudo -v; then
+        log_error "Sudo access is required. Please run the script again and provide your password when prompted."
+        exit 1
+    fi
+    log_success "Sudo access validated."
+}
+
+# Confirm settings with the user before executing
+confirm_and_execute() {
+    echo ""
+    echo -e "${PURPLE}╔══════════════════════════════════════════════╗${NC}"
+    echo -e "${PURPLE}║         PLEASE CONFIRM YOUR SETTINGS         ║${NC}"
+    echo -e "${PURPLE}╚══════════════════════════════════════════════╝${NC}"
+    echo ""
+    log_info "Network Mode: ${NETWORK_MODE}"
+    if [[ "$NETWORK_MODE" == "static" ]]; then
+        log_info "Static IP Address: ${STATIC_IP}"
+    fi
+    
+    # Determine the installation action text
+    local install_action="Install Input Leap"
+    if [[ "${SKIP_INSTALLATION:-false}" == "true" ]]; then
+        install_action="Configure existing Input Leap installation"
+    fi
+    log_info "Installation: ${install_action}"
+    
+    echo ""
+    read -p "Proceed with the setup using these settings? [Y/n]: " confirm
+    
+    # Default to 'Y' if the user just presses Enter
+    case "$confirm" in
+        [nN]|[nN][oO])
+            echo -e "${RED}Aborting setup at user request.${NC}"
+            exit 0
+            ;;
+        *)
+            echo -e "${GREEN}Confirmation received. Starting setup...${NC}"
+            ;;
+    esac
+}
+
+
+# Choose and configure network setup
+choose_network_setup() {
+    # This outer loop allows the user to return to the main menu
+    while true; do
+        echo -e "${PURPLE}🔌 Please choose your network configuration:${NC}"
+        echo -e "   ${CYAN}1) Configure a Static IP address${NC}"
+        echo -e "   ${CYAN}2) Use Dynamic IP / DHCP (Most common)${NC}"
+        echo -e "   ${CYAN}3) Skip network setup${NC}"
+        echo ""
+        read -p "Enter your choice [1-3]: " choice
+
+        case "$choice" in
+            1)
+                # --- Static IP Configuration ---
+                local ip_entered=false
+                while true; do
+                    # Add 'back' instruction to the prompt
+                    read -p "Enter the static IP (or type 'back' to return): " static_ip_input
+                    
+                    # Check if the user wants to go back
+                    if [[ "$static_ip_input" == "back" ]]; then
+                        break # Exit the inner IP input loop
+                    fi
+                    
+                    # Validate the IP address format
+                    if [[ "$static_ip_input" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+                        export NETWORK_MODE="static"
+                        export STATIC_IP="$static_ip_input"
+                        echo -e "${GREEN}✅ Static IP set to: $STATIC_IP${NC}"
+                        ip_entered=true
+                        break # Exit the inner IP input loop
+                    else
+                        echo -e "${RED}❌ Invalid IP address format. Please try again.${NC}"
+                    fi
+                done
+                
+                # If a valid IP was entered, we can exit the main menu loop
+                if [[ "$ip_entered" == true ]]; then
+                    break
+                fi
+                ;;
+            2)
+                # --- Dynamic IP / DHCP Configuration ---
+                export NETWORK_MODE="dynamic"
+                export STATIC_IP=""
+                echo -e "${GREEN}✅ Selected: Dynamic LAN/WiFi networking (DHCP)${NC}"
+                break # Exit the main menu loop
+                ;;
+            3)
+                # --- Skip Network Configuration ---
+                export NETWORK_MODE="skip"
+                export STATIC_IP=""
+                echo -e "${GREEN}✅ Selected: Skip network setup${NC}"
+                break # Exit the main menu loop
+                ;;
+            *)
+                echo -e "${RED}❌ Invalid choice. Please enter 1, 2, or 3.${NC}"
+                ;;
+        esac
+    done
+}
+
+
 # Main execution
 main() {
     print_banner
-    
     log_info "🏗️  Arch Linux Input Leap Auto-Setup Started"
     
-    echo -e "${BLUE}[1/13]${NC} Validating sudo access..."
+    # --- PHASE 1: GATHER INFORMATION ---
+    echo -e "${BLUE}[1/3]${NC} Validating sudo access..."
     validate_sudo
     
-    echo -e "${BLUE}[2/13]${NC} Network configuration choice..."
+    echo -e "${BLUE}[2/3]${NC} Choosing network configuration..."
     choose_network_setup
     
-    log_info "📋 This script will automatically:"
-    log_info "   • Detect your system (GNOME/KDE/XFCE, laptop/desktop)"
-    log_info "   • Install Input Leap (repos + AUR fallback)"
-    log_info "   • Apply GNOME optimizations (if detected)"
-    log_info "   • Configure network interfaces (${NETWORK_MODE} mode)"
-    log_info "   • Set up auto-start and systemd service"
-    log_info "   • Test everything works"
-    echo ""
+    echo -e "${BLUE}[3/3]${NC} Checking for existing installations..."
+    detect_system
+    check_existing_installation
+
+    # --- PHASE 2: CONFIRMATION ---
+    # Ask the user to confirm all choices before proceeding
+    confirm_and_execute
+
+    # --- PHASE 3: EXECUTION ---
+    # The script will only reach this point if the user confirms
+    log_info "🚀 Starting automated setup..."
     
-    echo -e "${BLUE}[3/13]${NC} Checking environment and requirements..."
+    echo -e "${BLUE}[1/8]${NC} Checking environment and requirements..."
     check_environment
     
-    echo -e "${BLUE}[4/13]${NC} Checking permissions..."
+    echo -e "${BLUE}[2/8]${NC} Checking permissions..."
     check_root
     
-    echo -e "${BLUE}[5/13]${NC} Detecting system configuration..."
-    detect_system
-    
-    echo -e "${BLUE}[6/13]${NC} Checking existing installations..."
-    check_existing_installation
-    
-    echo -e "${BLUE}[7/13]${NC} Creating directories..."
+    echo -e "${BLUE}[3/8]${NC} Creating directories..."
     create_directories
     
-    echo -e "${BLUE}[8/13]${NC} Installing Input Leap..."
+    echo -e "${BLUE}[4/8]${NC} Installing/Configuring Input Leap..."
     install_input_leap
     
-    echo -e "${BLUE}[9/13]${NC} Setting up GNOME integration..."
+    echo -e "${BLUE}[5/8]${NC} Setting up GNOME integration..."
     setup_gnome_integration
     
-    echo -e "${BLUE}[10/13]${NC} Configuring systemd service..."
+    echo -e "${BLUE}[6/8]${NC} Configuring systemd and shell..."
     setup_systemd
-    
-    echo -e "${BLUE}[11/13]${NC} Setting up shell integration..."
     setup_shell_integration
     
-    echo -e "${BLUE}[12/13]${NC} Configuring network and server connection..."
+    echo -e "${BLUE}[7/8]${NC} Configuring network and server..."
     configure_network_and_server
     
-    echo -e "${BLUE}[13/13]${NC} Testing setup and enabling auto-start..."
+    echo -e "${BLUE}[8/8]${NC} Finalizing setup..."
     test_setup
     enable_autostart
     
