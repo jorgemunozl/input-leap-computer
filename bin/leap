@@ -61,6 +61,31 @@ case "${1:-}" in
         shift
         exec "$NETWORK_MANAGER" "$@"
         ;;
+    "ethernet")
+        echo -e "${CYAN}🔧 Input Leap Ethernet Setup${NC}"
+        echo "This will configure your ethernet with standard Input Leap IPs:"
+        echo ""
+        echo -e "${YELLOW}Choose your role:${NC}"
+        echo -e "  ${CYAN}1) Server (169.254.135.230)${NC} - The main computer"
+        echo -e "  ${CYAN}2) Client (169.254.135.231)${NC} - The laptop/secondary computer"
+        echo ""
+        read -p "Enter your choice [1-2]: " role_choice
+        
+        case "$role_choice" in
+            1)
+                echo -e "${CYAN}Setting up as SERVER (169.254.135.230)...${NC}"
+                exec "$NETWORK_MANAGER" static_ip "169.254.135.230"
+                ;;
+            2)
+                echo -e "${CYAN}Setting up as CLIENT (169.254.135.231)...${NC}"
+                exec "$NETWORK_MANAGER" static_ip "169.254.135.231"
+                ;;
+            *)
+                echo -e "${RED}❌ Invalid choice. Please choose 1 or 2.${NC}"
+                exit 1
+                ;;
+        esac
+        ;;
     *)
         # Execute the manager with all arguments
         exec "$MANAGER" "$@"

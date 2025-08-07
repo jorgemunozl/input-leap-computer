@@ -66,8 +66,8 @@ cd input-leap
 ```
 
 **🔧 During setup, you'll choose:**
-- **Static Ethernet (169.254.135.230)** - Primary client, most reliable
-- **Static Ethernet (169.254.135.231)** - Secondary client, for additional machines  
+- **Server - Leap Ethernet (169.254.135.230)** - Primary client, most reliable
+- **Client - Leap Ethernet (169.254.135.231)** - Secondary client, for additional machines  
 - **Dynamic LAN/WiFi** - Use existing network (may need reconfiguration)
 - **Manual setup** - Configure network later with `leap network` commands
 
@@ -196,8 +196,8 @@ cd input-leap
 ```
 
 **🌐 Network Choice:** During setup, you'll choose your preferred network configuration:
-- **Static Ethernet (169.254.135.230)** - Primary client, most reliable
-- **Static Ethernet (169.254.135.231)** - Secondary client, for multiple machines
+- **Server - Leap Ethernet (169.254.135.230)** - Primary client, most reliable
+- **Client - Leap Ethernet (169.254.135.231)** - Secondary client, for multiple machines
 - **Dynamic LAN/WiFi** - Uses existing network  
 - **Manual setup** - Configure later
 
@@ -302,6 +302,7 @@ leap stop       # Disconnect
 leap status     # Check status with real-time info
 leap config     # Configure server (with examples!)
 leap test       # Test connection with helpful tips
+leap ethernet   # Quick Leap Ethernet setup (server/client role)
 ```
 
 ### 🖥️ **Server Commands (NEW!)**
@@ -317,6 +318,7 @@ leap-server status      # Check server status
 ### 🌐 **Network Management**
 ```bash
 # Quick network fixes
+leap ethernet           # 🔧 Quick Leap Ethernet setup (server/client role selection)
 leap network status     # 📊 Show all interfaces with IP/status  
 leap network static     # 🔧 Auto-configure Ethernet with static IP (RECOMMENDED!)
 leap network auto       # 🔄 Auto-configure with DHCP
@@ -334,7 +336,7 @@ leap net status         # Same as leap network status
 leap net static         # Same as leap network static
 ```
 
-**🎯 Static IP Features (NEW!):**
+**🎯 Leap Ethernet Features (NEW!):**
 - **🔒 Fixed IP addresses** - No more DHCP changes breaking connections
 - **🚀 Link-local networking** - Works without router/DHCP (169.254.x.x range)
 - **⚡ Auto-detection** - Finds your Ethernet interface automatically
@@ -443,6 +445,7 @@ leap network auto      # Auto-configure static IP
 
 ### 🌐 **Network Commands**
 ```bash
+leap ethernet          # Quick Leap Ethernet setup (server/client role selection)
 leap network status    # Check network interfaces
 leap network auto      # Auto-configure static IP
 leap network manual    # Manual IP configuration

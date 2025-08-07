@@ -847,19 +847,33 @@ choose_network_setup() {
     # This outer loop allows the user to return to the main menu
     while true; do
         echo -e "${PURPLE}🔌 Please choose your network configuration:${NC}"
-        echo -e "   ${CYAN}1) Configure a Static IP address${NC}"
-        echo -e "   ${CYAN}2) Use Dynamic IP / DHCP (Most common)${NC}"
-        echo -e "   ${CYAN}3) Skip network setup${NC}"
+        echo -e "   ${CYAN}1) Server - Leap Ethernet (169.254.135.230)${NC} - Main computer"
+        echo -e "   ${CYAN}2) Client - Leap Ethernet (169.254.135.231)${NC} - Laptop/secondary"
+        echo -e "   ${CYAN}3) Custom Leap Ethernet address${NC}"
+        echo -e "   ${CYAN}4) Use Dynamic IP / DHCP (Most common)${NC}"
+        echo -e "   ${CYAN}5) Skip network setup${NC}"
         echo ""
-        read -p "Enter your choice [1-3]: " choice
+        read -p "Enter your choice [1-5]: " choice
 
         case "$choice" in
             1)
-                # --- Static IP Configuration ---
+                export NETWORK_MODE="static"
+                export STATIC_IP="169.254.135.230"
+                echo -e "${GREEN}✅ Selected: Server - Leap Ethernet (169.254.135.230)${NC}"
+                break
+                ;;
+            2)
+                export NETWORK_MODE="static"
+                export STATIC_IP="169.254.135.231"
+                echo -e "${GREEN}✅ Selected: Client - Leap Ethernet (169.254.135.231)${NC}"
+                break
+                ;;
+            3)
+                # --- Custom Static IP Configuration ---
                 local ip_entered=false
                 while true; do
                     # Add 'back' instruction to the prompt
-                    read -p "Enter the static IP (or type 'back' to return): " static_ip_input
+                    read -p "Enter the custom leap ethernet IP (or type 'back' to return): " static_ip_input
                     
                     # Check if the user wants to go back
                     if [[ "$static_ip_input" == "back" ]]; then
@@ -870,7 +884,7 @@ choose_network_setup() {
                     if [[ "$static_ip_input" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
                         export NETWORK_MODE="static"
                         export STATIC_IP="$static_ip_input"
-                        echo -e "${GREEN}✅ Static IP set to: $STATIC_IP${NC}"
+                        echo -e "${GREEN}✅ Custom Leap Ethernet IP set to: $STATIC_IP${NC}"
                         ip_entered=true
                         break # Exit the inner IP input loop
                     else
@@ -883,14 +897,14 @@ choose_network_setup() {
                     break
                 fi
                 ;;
-            2)
+            4)
                 # --- Dynamic IP / DHCP Configuration ---
                 export NETWORK_MODE="dynamic"
                 export STATIC_IP=""
                 echo -e "${GREEN}✅ Selected: Dynamic LAN/WiFi networking (DHCP)${NC}"
                 break # Exit the main menu loop
                 ;;
-            3)
+            5)
                 # --- Skip Network Configuration ---
                 export NETWORK_MODE="skip"
                 export STATIC_IP=""
@@ -898,7 +912,7 @@ choose_network_setup() {
                 break # Exit the main menu loop
                 ;;
             *)
-                echo -e "${RED}❌ Invalid choice. Please enter 1, 2, or 3.${NC}"
+                echo -e "${RED}❌ Invalid choice. Please enter 1, 2, 3, 4, or 5.${NC}"
                 ;;
         esac
     done
