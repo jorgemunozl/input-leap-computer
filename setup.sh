@@ -244,7 +244,7 @@ check_existing_installation() {
                 SKIP_INSTALLATION=false
                 ;;
             3)
-                log_info "Keeping current installation, skipping re-install. Continuing with configuration and network setup."
+                log_info "Exiting setup. Current installation preserved."
                 echo -e "${GREEN}👋 Setup aborted by user.${NC}"
                 exit 0
                 ;;
@@ -940,8 +940,29 @@ main() {
     echo -e "${BLUE}[4/8]${NC} Installing/Configuring Input Leap..."
     install_input_leap
     
-    echo -e "${BLUE}[5/8]${NC} Setting up GNOME integration..."
-    setup_gnome_integration
+    echo -e "${BLUE}[5/8]${NC} Setting up desktop integration..."
+    # Only setup GNOME integration if GNOME is detected and user wants it
+    if [[ "$DESKTOP_ENV" == "GNOME" ]]; then
+        echo ""
+        echo -e "${YELLOW}GNOME desktop detected. Would you like to apply GNOME-specific optimizations?${NC}"
+        echo -e "${CYAN}These optimizations include:${NC}"
+        echo -e "  • Disable screen lock during remote sessions"
+        echo -e "  • Optimize power management for Input Leap"
+        echo -e "  • Configure accessibility settings"
+        echo ""
+        read -p "Apply GNOME optimizations? [Y/n]: " gnome_confirm
+        
+        case "$gnome_confirm" in
+            [nN]|[nN][oO])
+                log_info "Skipping GNOME optimizations as requested"
+                ;;
+            *)
+                setup_gnome_integration
+                ;;
+        esac
+    else
+        log_info "Non-GNOME desktop detected - skipping GNOME-specific configuration"
+    fi
     
     echo -e "${BLUE}[6/8]${NC} Configuring systemd and shell..."
     setup_systemd

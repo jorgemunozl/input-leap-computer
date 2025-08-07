@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Leap - Simple wrapper for Input Leap Manager
 # Usage: leap [command]
@@ -10,7 +11,9 @@ readonly CYAN='\033[0;36m'
 readonly NC='\033[0m'
 
 # Find the project root (assuming this script is in bin/)
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Use readlink to resolve symlinks and get the actual script location
+readonly SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+readonly SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 readonly PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 readonly MANAGER="$SCRIPT_DIR/input-leap-manager"
 readonly NETWORK_MANAGER="$SCRIPT_DIR/network-manager"
