@@ -46,6 +46,95 @@ check_installation() {
     return 0
 }
 
+# Setup permanent ethernet configuration with systemd-networkd
+setup_permanent_ethernet() {
+    local static_ip="$1"
+    local config_file="/etc/systemd/network/25-input-leap.network"
+    
+    # Check for root privileges
+    if [[ $EUID -ne 0 ]]; then
+        echo -e "${RED}❌ Error: This operation requires root privileges.${NC}"
+        echo -e "${YELLOW}💡 Please run with sudo:${NC}"
+        echo -e "   ${CYAN}sudo $(readlink -f "${BASH_SOURCE[0]}") ethernet forever${NC}"
+        exit 1
+    fi
+    
+    # Find ethernet interface
+    local interfaces=($(ls /sys/class/net | grep -E '^e'))
+    local interface
+    
+    if [[ ${#interfaces[@]} -eq 0 ]]; then
+        echo -e "${RED}❌ Error: No wired ethernet interface found.${NC}"
+        exit 1
+    elif [[ ${#interfaces[@]} -eq 1 ]]; then
+        interface=${interfaces[0]}
+        echo -e "Found ethernet interface: ${CYAN}$interface${NC}"
+    else
+        echo -e "${YELLOW}Multiple ethernet interfaces found. Please choose one:${NC}"
+        select opt in "${interfaces[@]}"; do
+            if [[ -n "$opt" ]]; then
+                interface=$opt
+                echo -e "You selected: ${CYAN}$interface${NC}"
+                break
+            else
+                echo "Invalid selection. Please try again."
+            fi
+        done
+    fi
+    
+    # Check for conflicting services (NetworkManager)
+    if systemctl is-active --quiet NetworkManager; then
+        echo -e "\n${YELLOW}⚠️  Warning: NetworkManager is currently active.${NC}"
+        echo "For permanent static IP with systemd-networkd to work reliably,"
+        echo "NetworkManager should be disabled."
+        echo ""
+        read -p "Do you want to disable NetworkManager? (y/N) " choice
+        if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
+            echo "Stopping and disabling NetworkManager..."
+            systemctl disable --now NetworkManager
+            echo -e "${CYAN}✅ NetworkManager disabled.${NC}"
+        else
+            echo -e "${RED}❌ Aborting. Cannot proceed while NetworkManager is active.${NC}"
+            exit 1
+        fi
+    fi
+    
+    # Create the systemd-networkd configuration file
+    echo -e "\n${CYAN}Creating permanent configuration at $config_file...${NC}"
+    cat > "$config_file" << EOT
+[Match]
+Name=$interface
+
+[Network]
+Address=$static_ip
+
+[Link]
+RequiredForOnline=yes
+EOT
+    echo -e "${CYAN}✅ Configuration file created successfully.${NC}"
+    
+    # Enable and start systemd-networkd
+    echo -e "${CYAN}Enabling and starting systemd-networkd...${NC}"
+    systemctl enable --now systemd-networkd
+    
+    # Apply the configuration
+    echo -e "${CYAN}Applying network configuration...${NC}"
+    networkctl reload
+    sleep 2
+    
+    echo -e "\n${CYAN}🎉 Permanent Ethernet Setup Complete!${NC}"
+    echo -e "Your interface ${CYAN}$interface${NC} is now permanently configured with IP ${CYAN}${static_ip%/*}${NC}."
+    echo -e "\n${YELLOW}💡 This configuration will persist across reboots!${NC}"
+    echo -e "\n${CYAN}To verify:${NC} ${YELLOW}ip addr show $interface${NC}"
+    echo -e "${CYAN}To check systemd-networkd:${NC} ${YELLOW}networkctl status${NC}"
+    
+    if [[ "$static_ip" == "169.254.135.230/16" ]]; then
+        echo -e "\n${YELLOW}📝 Note:${NC} Remember to configure the client machine with IP 169.254.135.231"
+    else
+        echo -e "\n${YELLOW}📝 Note:${NC} Remember to configure the server machine with IP 169.254.135.230"
+    fi
+}
+
 # Check installation before proceeding
 if ! check_installation; then
     exit 1
@@ -62,29 +151,59 @@ case "${1:-}" in
         exec "$NETWORK_MANAGER" "$@"
         ;;
     "ethernet")
-        echo -e "${CYAN}🔧 Input Leap Ethernet Setup${NC}"
-        echo "This will configure your ethernet with standard Input Leap IPs:"
-        echo ""
-        echo -e "${YELLOW}Choose your role:${NC}"
-        echo -e "  ${CYAN}1) Server (169.254.135.230)${NC} - The main computer"
-        echo -e "  ${CYAN}2) Client (169.254.135.231)${NC} - The laptop/secondary computer"
-        echo ""
-        read -p "Enter your choice [1-2]: " role_choice
-        
-        case "$role_choice" in
-            1)
-                echo -e "${CYAN}Setting up as SERVER (169.254.135.230)...${NC}"
-                exec "$NETWORK_MANAGER" static_ip "169.254.135.230"
-                ;;
-            2)
-                echo -e "${CYAN}Setting up as CLIENT (169.254.135.231)...${NC}"
-                exec "$NETWORK_MANAGER" static_ip "169.254.135.231"
-                ;;
-            *)
-                echo -e "${RED}❌ Invalid choice. Please choose 1 or 2.${NC}"
-                exit 1
-                ;;
-        esac
+        # Check for subcommand
+        if [[ "${2:-}" == "forever" ]]; then
+            # Handle leap ethernet forever
+            echo -e "${CYAN}🔧 Input Leap Ethernet Forever Setup${NC}"
+            echo "This will permanently configure your ethernet with systemd-networkd."
+            echo -e "${YELLOW}This configuration persists across reboots!${NC}"
+            echo ""
+            echo -e "${YELLOW}Choose your role:${NC}"
+            echo -e "  ${CYAN}1) Server (169.254.135.230)${NC} - The main computer"
+            echo -e "  ${CYAN}2) Client (169.254.135.231)${NC} - The laptop/secondary computer"
+            echo ""
+            read -p "Enter your choice [1-2]: " role_choice
+            
+            case "$role_choice" in
+                1)
+                    echo -e "${CYAN}Setting up SERVER (169.254.135.230) with systemd-networkd...${NC}"
+                    setup_permanent_ethernet "169.254.135.230/16"
+                    ;;
+                2)
+                    echo -e "${CYAN}Setting up CLIENT (169.254.135.231) with systemd-networkd...${NC}"
+                    setup_permanent_ethernet "169.254.135.231/16"
+                    ;;
+                *)
+                    echo -e "${RED}❌ Invalid choice. Please choose 1 or 2.${NC}"
+                    exit 1
+                    ;;
+            esac
+        else
+            # Original ethernet command (temporary setup)
+            echo -e "${CYAN}🔧 Input Leap Ethernet Setup${NC}"
+            echo "This will configure your ethernet with standard Input Leap IPs:"
+            echo ""
+            echo -e "${YELLOW}Choose your role:${NC}"
+            echo -e "  ${CYAN}1) Server (169.254.135.230)${NC} - The main computer"
+            echo -e "  ${CYAN}2) Client (169.254.135.231)${NC} - The laptop/secondary computer"
+            echo ""
+            read -p "Enter your choice [1-2]: " role_choice
+            
+            case "$role_choice" in
+                1)
+                    echo -e "${CYAN}Setting up as SERVER (169.254.135.230)...${NC}"
+                    exec "$NETWORK_MANAGER" static_ip "169.254.135.230"
+                    ;;
+                2)
+                    echo -e "${CYAN}Setting up as CLIENT (169.254.135.231)...${NC}"
+                    exec "$NETWORK_MANAGER" static_ip "169.254.135.231"
+                    ;;
+                *)
+                    echo -e "${RED}❌ Invalid choice. Please choose 1 or 2.${NC}"
+                    exit 1
+                    ;;
+            esac
+        fi
         ;;
     *)
         # Execute the manager with all arguments

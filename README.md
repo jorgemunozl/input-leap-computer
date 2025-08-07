@@ -303,6 +303,7 @@ leap status     # Check status with real-time info
 leap config     # Configure server (with examples!)
 leap test       # Test connection with helpful tips
 leap ethernet   # Quick Leap Ethernet setup (server/client role)
+leap ethernet forever # Permanent ethernet setup (survives reboots)
 ```
 
 ### 🖥️ **Server Commands (NEW!)**
@@ -319,6 +320,7 @@ leap-server status      # Check server status
 ```bash
 # Quick network fixes
 leap ethernet           # 🔧 Quick Leap Ethernet setup (server/client role selection)
+leap ethernet forever   # 🔒 Permanent Leap Ethernet setup with systemd-networkd (survives reboots)
 leap network status     # 📊 Show all interfaces with IP/status  
 leap network static     # 🔧 Auto-configure Ethernet with static IP (RECOMMENDED!)
 leap network auto       # 🔄 Auto-configure with DHCP
@@ -343,6 +345,14 @@ leap net static         # Same as leap network static
 - **💾 Persistent config** - Remembers your settings across reboots
 - **🔧 Manual override** - Set custom IPs for any interface
 - **📋 Backup safety** - Saves old config before changes
+
+**🔧 Ethernet Command Options:**
+- **`leap ethernet`** - Quick temporary setup (NetworkManager-based, resets on reboot)
+- **`leap ethernet forever`** - Permanent setup (systemd-networkd, survives reboots) ⚡ **RECOMMENDED**
+
+**💡 When to use each:**
+- **Temporary (`leap ethernet`)**: Testing, one-time use, or when you want to easily revert
+- **Permanent (`leap ethernet forever`)**: Production use, daily workflow, permanent Input Leap setup
 
 **Smart Network Features:**
 - **🔍 Auto-detects Ethernet** - Prioritizes wired over WiFi
@@ -446,6 +456,7 @@ leap network auto      # Auto-configure static IP
 ### 🌐 **Network Commands**
 ```bash
 leap ethernet          # Quick Leap Ethernet setup (server/client role selection)
+leap ethernet forever  # Permanent Leap Ethernet setup (systemd-networkd, survives reboots)
 leap network status    # Check network interfaces
 leap network auto      # Auto-configure static IP
 leap network manual    # Manual IP configuration
