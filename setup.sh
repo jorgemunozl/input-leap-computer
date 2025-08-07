@@ -671,32 +671,33 @@ setup_systemd() {
 setup_shell_integration() {
     log_info "Setting up shell integration..."
     
-    # Create leap command symlink (try system-wide first, fall back to user local)
-    local leap_cmd="/usr/local/bin/leap"
-    local user_bin="$HOME/.local/bin"
+    echo ""
+    echo -e "${YELLOW}Would you like to add the 'leap' command to your shell?${NC}"
+    echo -e "${CYAN}This will add an alias to your .bashrc so you can run 'leap' from anywhere.${NC}"
+    echo ""
+    read -p "Add 'leap' command alias? [Y/n]: " add_alias
     
-    if [[ ! -L "$leap_cmd" ]] && [[ ! -f "$leap_cmd" ]]; then
-        if sudo ln -sf "$BIN_DIR/leap" "$leap_cmd" 2>/dev/null; then
-            log_success "Created system-wide 'leap' command"
-        else
-            # Fall back to user local bin
-            mkdir -p "$user_bin"
-            ln -sf "$BIN_DIR/leap" "$user_bin/leap"
-            log_success "Created user 'leap' command in ~/.local/bin"
-            
-            # Add ~/.local/bin to PATH if not already there
-            if ! echo "$PATH" | grep -q "$user_bin"; then
-                if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null; then
-                    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-                    log_info "Added ~/.local/bin to PATH in .bashrc"
-                fi
+    case "$add_alias" in
+        [nN]|[nN][oO])
+            log_info "Skipping shell alias setup as requested"
+            echo -e "${CYAN}You can manually run: $BIN_DIR/leap${NC}"
+            ;;
+        *)
+            # Add alias to bashrc
+            local alias_line="alias leap='$BIN_DIR/leap'"
+            if ! grep -q -F "$alias_line" "$HOME/.bashrc" 2>/dev/null; then
+                echo "" >> "$HOME/.bashrc"
+                echo "# Input Leap command alias" >> "$HOME/.bashrc"
+                echo "$alias_line" >> "$HOME/.bashrc"
+                log_success "Added 'leap' alias to .bashrc"
+                echo -e "${YELLOW}💡 Run 'source ~/.bashrc' or open a new terminal to use the 'leap' command${NC}"
+            else
+                log_success "'leap' alias already exists in .bashrc"
             fi
-        fi
-    else
-        log_success "'leap' command already exists"
-    fi
+            ;;
+    esac
     
-    # Add to bashrc if not already there
+    # Add bashrc integration for auto-start
     local bashrc_line="source \"$CONFIG_DIR/bashrc_integration.sh\""
     if ! grep -q -F "$bashrc_line" "$HOME/.bashrc" 2>/dev/null; then
         echo "" >> "$HOME/.bashrc"
