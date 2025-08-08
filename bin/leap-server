@@ -15,7 +15,8 @@ readonly CYAN='\033[0;36m'
 readonly NC='\033[0m'
 
 # Paths
-readonly CONFIG_DIR="$HOME/.config/InputLeap"
+# Use consistent lowercase config directory to match client scripts
+readonly CONFIG_DIR="$HOME/.config/input-leap"
 readonly CONFIG_FILE="$CONFIG_DIR/leap-server.conf"
 readonly LOG_FILE="$HOME/.cache/input-leap/server.log"
 readonly PID_FILE="/tmp/input-leap-server.pid"

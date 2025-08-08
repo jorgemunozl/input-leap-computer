@@ -420,7 +420,8 @@ leap network check
 ## 📁 Files & Configuration
 
 ### Important Files
-- **Configuration**: `~/.config/input-leap/server.conf`
+- **Client Configuration**: `~/.config/input-leap/server.conf`
+- **Server Configuration**: `~/.config/input-leap/leap-server.conf`
 - **Logs**: `~/.cache/input-leap/client.log`
 - **Service**: `~/.config/systemd/user/input-leap.service`
 
