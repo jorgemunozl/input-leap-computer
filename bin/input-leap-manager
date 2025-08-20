@@ -349,9 +349,9 @@ load_config() {
         return 1
     fi
     
-    # Set defaults
+    # Set defaults - use "archlinux" as client name to match working aliases
     SERVER_PORT="${SERVER_PORT:-24800}"
-    CLIENT_NAME="${CLIENT_NAME:-$(get_hostname)}"
+    CLIENT_NAME="${CLIENT_NAME:-archlinux}"
     
     return 0
 }
@@ -603,9 +603,11 @@ start_client() {
     export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-x11}"
     export GDK_BACKEND="${GDK_BACKEND:-x11}"
     
-    # Start client with enhanced error logging
+    # Start client with the working command format (same as your aliases)
     nohup "$client_binary" \
         --name "$CLIENT_NAME" \
+        --debug INFO \
+        --disable-crypto \
         "$SERVER_HOST:$SERVER_PORT" \
         >> "$LOG_FILE" 2>&1 &
     

@@ -119,7 +119,7 @@ After=network.target
 [Service]
 User=$USER
 Group=$(id -gn)
-ExecStart=$(command -v input-leaps) --debug INFO -f --name ${SCREEN_NAME} --config $CFG_FILE
+ExecStart=$(command -v input-leaps) --debug INFO --disable-crypto -f --name ${SCREEN_NAME} --config $CFG_FILE
 Restart=always
 
 [Install]
@@ -131,7 +131,7 @@ SVC"
   fi
 
   say "Para iniciar manualmente:"
-  echo "  input-leaps --name ${SCREEN_NAME} --config \"$CFG_FILE\" --debug INFO -f"
+  echo "  input-leaps --name ${SCREEN_NAME} --config \"$CFG_FILE\" --debug INFO --disable-crypto -f"
 
 # ---------- Client path ----------
 else
@@ -156,7 +156,7 @@ else
   touch "$FP_DIR/TrustedServers.txt" || true
 
   say "Comando para iniciar el CLIENT (ejecútalo tras el server):"
-  echo "  input-leapc --name ${SCREEN_NAME} --profile-dir \"$CLIENT_PROFILE\" --debug INFO -f ${SERVER_HOST}"
+  echo "  input-leapc --name ${SCREEN_NAME} --profile-dir \"$CLIENT_PROFILE\" --debug INFO --disable-crypto -f ${SERVER_HOST}"
 
   # ¿Crear servicio systemd?
   say "¿Crear servicio systemd para el CLIENT? [y/N]"
@@ -173,7 +173,7 @@ After=network.target
 [Service]
 User=$USER
 Group=$(id -gn)
-ExecStart=$(command -v input-leapc) --enable-drag-drop --debug INFO -f --name ${SCREEN_NAME} --profile-dir $CLIENT_PROFILE ${SERVER_HOST}
+ExecStart=$(command -v input-leapc) --enable-drag-drop --debug INFO --disable-crypto -f --name ${SCREEN_NAME} --profile-dir $CLIENT_PROFILE ${SERVER_HOST}
 Restart=always
 
 [Install]
