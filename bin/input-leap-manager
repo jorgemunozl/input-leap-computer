@@ -11,6 +11,10 @@ readonly LOG_FILE="$HOME/.cache/input-leap/client.log"
 readonly PID_FILE="$HOME/.cache/input-leap/client.pid"
 readonly LOCK_FILE="$HOME/.cache/input-leap/client.lock"
 
+# Paths
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SERVER_BIN="$SCRIPT_DIR/leap-server"
+
 # Colors
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
@@ -41,7 +45,7 @@ check_prerequisites() {
     
     # Check if Input Leap client is installed (try multiple possible names)
     local client_binary=""
-    for binary in "input-leapc" "input-leap-client" "synergyc"; do
+    for binary in "input-leapc" "input-leap-client" "synergyc" "input-leap"; do
         if command -v "$binary" &> /dev/null; then
             client_binary="$binary"
             break
@@ -82,14 +86,13 @@ check_prerequisites() {
 
 # Function to get the correct Input Leap client binary
 get_client_binary() {
-    for binary in "input-leapc" "input-leap-client" "synergyc"; do
+    for binary in "input-leapc" "input-leap-client" "synergyc" "input-leap"; do
         if command -v "$binary" &> /dev/null; then
             echo "$binary"
             return 0
         fi
     done
     
-    # If none found, return the most likely name for error reporting
     echo "input-leapc"
     return 1
 }
@@ -138,15 +141,197 @@ log_success() {
     log "SUCCESS: $1"
 }
 
+# Detect server (input-leaps) running for current user
+detect_server_pid() {
+    local uid
+    uid="$(id -u)"
+    # Exact server binary name commonly used by Input Leap
+    local pid
+    pid=$(pgrep -U "$uid" -x input-leaps 2>/dev/null || true)
+    if [[ -n "$pid" ]]; then
+        echo "$pid" | head -n1
+        return 0
+    fi
+    # Fallback: check listening socket on 24800 belonging to current user
+    if command -v ss >/dev/null 2>&1; then
+        local ss_out
+        ss_out=$(ss -tnlp 2>/dev/null || true)
+        if [[ -n "$ss_out" ]]; then
+            while IFS= read -r line; do
+                [[ -z "$line" ]] && continue
+                # look for LISTEN :24800
+                if [[ "$line" == *"LISTEN"* && "$line" == *":24800 "* ]] && [[ "$line" =~ pid=([0-9]+) ]]; then
+                    local spid
+                    spid="${BASH_REMATCH[1]}"
+                    # Ensure it's our user and likely the server
+                    local comm owner
+                    comm=$(ps -p "$spid" -o comm= 2>/dev/null || true)
+                    owner=$(ps -o uid= -p "$spid" 2>/dev/null || true)
+                    if [[ "$owner" == "$(id -u)" && "$comm" =~ ^(input-leaps|input-leap)$ ]]; then
+                        echo "$spid"
+                        return 0
+                    fi
+                fi
+            done <<< "$ss_out"
+        fi
+    fi
+    return 1
+}
+
+# Detect GUI shell running (input-leap)
+detect_gui_pid() {
+    local uid
+    uid="$(id -u)"
+    local pid
+    pid=$(pgrep -U "$uid" -x input-leap 2>/dev/null || true)
+    if [[ -n "$pid" ]]; then
+        echo "$pid" | head -n1
+        return 0
+    fi
+    return 1
+}
+
+# Detect running client via network sockets (ESTABLISHED to server port)
+detect_running_pid_via_network() {
+    local target_port
+    local target_host=""
+
+    # Try to load config to know server host/port; if not present, default to 24800
+    if load_config; then
+        target_port="$SERVER_PORT"
+        target_host="$SERVER_HOST"
+    else
+        target_port="24800"
+    fi
+
+    # Use ss if available
+    if command -v ss >/dev/null 2>&1; then
+        # -t: TCP, -n: numeric, -p: process, state established only
+        # We will match dport = target_port and extract pid from users:(())
+        local ss_out
+        ss_out=$(ss -tnp state established 2>/dev/null || true)
+        if [[ -n "$ss_out" ]]; then
+            while IFS= read -r line; do
+                [[ -z "$line" ]] && continue
+                # Ensure destination port matches
+                if [[ "$line" != *":$target_port "* && "$line" != *":$target_port\n"* && "$line" != *":$target_port\t"* ]]; then
+                    continue
+                fi
+                # If we have a target_host, try to ensure peer address matches it (best-effort)
+                if [[ -n "$target_host" ]]; then
+                    # Normalize host: if not an IP, skip strict check
+                    if [[ "$target_host" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                        # Look for that IP in the line
+                        if [[ "$line" != *" $target_host:"* && "$line" != *" peer:$target_host:"* ]]; then
+                            continue
+                        fi
+                    fi
+                fi
+                # Extract pid from users:(("name",pid=PID,fd=...))
+                if [[ "$line" =~ pid=([0-9]+) ]]; then
+                    local pid
+                    pid="${BASH_REMATCH[1]}"
+                    # Verify the process name looks like a client (avoid servers)
+                    local comm
+                    comm=$(ps -p "$pid" -o comm= 2>/dev/null || true)
+                    if [[ "$comm" =~ ^(input-leap|input-leap-client|input-leapc|synergyc)$ ]]; then
+                        # Exclude known server binary name 'input-leaps'
+                        echo "$pid"
+                        return 0
+                    fi
+                fi
+            done <<< "$ss_out"
+        fi
+    fi
+
+    # Fallback to lsof if available
+    if command -v lsof >/dev/null 2>&1; then
+        local lsof_out
+        lsof_out=$(lsof -nP -i TCP:"$target_port" -sTCP:ESTABLISHED 2>/dev/null || true)
+        if [[ -n "$lsof_out" ]]; then
+            # Skip header and parse
+            echo "$lsof_out" | awk 'NR>1 {print $1" "$2" "$9}' | while read -r name pid endpoint; do
+                # Optionally filter by host if IP given
+                if [[ -n "$target_host" && "$target_host" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                    if [[ "$endpoint" != *"->$target_host:"* && "$endpoint" != *"$target_host:"* ]]; then
+                        continue
+                    fi
+                fi
+                if [[ "$name" =~ ^(input-leap|input-leap-client|input-leapc|synergyc)$ ]]; then
+                    echo "$pid"
+                    return 0
+                fi
+            done
+        fi
+    fi
+
+    return 1
+}
+
+# Find running client PID owned by current user (fallback when PID file missing)
+detect_running_pid() {
+    local uid
+    uid="$(id -u)"
+    
+    # Prefer network-based detection to ensure we catch GUI client connecting out
+    local net_pid
+    if net_pid=$(detect_running_pid_via_network); then
+        echo "$net_pid"
+        return 0
+    fi
+    
+    # Scan processes owned by current user and try to identify client-like commands
+    local ps_output
+    ps_output=$(ps -U "$uid" -o pid=,args= 2>/dev/null || true)
+    if [[ -z "$ps_output" ]]; then
+        return 1
+    fi
+    
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        local pid cmd
+        pid="$(echo "$line" | awk '{print $1}')"
+        cmd="$(echo "$line" | cut -d' ' -f2-)"
+        
+        # Normalize for matching
+        if [[ "$cmd" =~ (input-leap-client|input-leapc|synergyc) ]]; then
+            echo "$pid"
+            return 0
+        fi
+        
+        # Consider generic 'input-leap' binary when used as a client (exclude server invocations)
+        if [[ "$cmd" =~ (^|[[:space:]])input-leap([[:space:]]|$) ]]; then
+            # Skip obvious server/config modes
+            if [[ "$cmd" =~ (input-leap-server|input-leaps|--server|--config) ]]; then
+                continue
+            fi
+            # Heuristics: treat as client if args indicate a target (host:port) or explicit --client
+            if [[ "$cmd" =~ --client ]] || [[ "$cmd" =~ [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(:[0-9]+)? ]] || [[ "$cmd" =~ :[0-9]{2,5} ]]; then
+                echo "$pid"
+                return 0
+            fi
+        fi
+    done <<< "$ps_output"
+    
+    return 1
+}
+
 # Check if client is running
 is_running() {
     if [[ -f "$PID_FILE" ]]; then
-        local pid=$(cat "$PID_FILE")
+        local pid
+        pid=$(cat "$PID_FILE")
         if ps -p "$pid" > /dev/null 2>&1; then
             return 0
         else
             rm -f "$PID_FILE"
         fi
+    fi
+    # Fallback: try to detect an already-running client started externally
+    local detected_pid
+    if detected_pid=$(detect_running_pid); then
+        echo "$detected_pid" > "$PID_FILE"
+        return 0
     fi
     return 1
 }
@@ -289,8 +474,7 @@ start_client() {
     fi
     
     # Check network interfaces first
-    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    local network_manager="$script_dir/network-manager"
+    local network_manager="$SCRIPT_DIR/network-manager"
     
     if [[ -x "$network_manager" ]]; then
         log_info "Checking network interfaces..."
@@ -480,10 +664,26 @@ start_client() {
 stop_client() {
     if ! is_running; then
         log_info "Input Leap client is not running"
+        # Provide guidance if server or GUI is running instead, and delegate stop
+        local spid gpid
+        if spid=$(detect_server_pid); then
+            log_warn "Detected Input Leap SERVER running (PID: $spid). Forwarding stop to server..."
+            if [[ -x "$SERVER_BIN" ]]; then
+                "$SERVER_BIN" stop || true
+            elif command -v leap-server >/dev/null 2>&1; then
+                leap-server stop || true
+            else
+                log_warn "Server manager not found. Please stop the server via GUI or 'input-leaps'."
+            fi
+        elif gpid=$(detect_gui_pid); then
+            log_warn "Detected Input Leap GUI running (PID: $gpid)."
+            echo -e "${YELLOW}Please close the GUI or stop the server via the GUI if it started one.${NC}"
+        fi
         return 0
     fi
     
-    local pid=$(cat "$PID_FILE")
+    local pid
+    pid=$(cat "$PID_FILE")
     log_info "Stopping Input Leap client (PID: $pid)..."
     
     # Graceful shutdown
@@ -537,7 +737,8 @@ show_status() {
     echo "═══════════════════════════════════"
     
     if is_running; then
-        local pid=$(cat "$PID_FILE")
+        local pid
+        pid=$(cat "$PID_FILE")
         echo -e "Status: ${GREEN}🟢 Running${NC} (PID: $pid)"
         
         if load_config; then
@@ -561,6 +762,26 @@ show_status() {
         fi
     else
         echo -e "Status: ${RED}🔴 Not running${NC}"
+        
+        # Additional hints if server/GUI is running; also show server status
+        local spid gpid
+        if spid=$(detect_server_pid); then
+            echo -e "Note: ${YELLOW}Input Leap SERVER is running (PID: $spid) on this machine.${NC}"
+            if [[ -x "$SERVER_BIN" ]]; then
+                echo ""
+                echo -e "${BLUE}🖥️  Server Status:${NC}"
+                "$SERVER_BIN" status || true
+            elif command -v leap-server >/dev/null 2>&1; then
+                echo ""
+                echo -e "${BLUE}🖥️  Server Status:${NC}"
+                leap-server status || true
+            else
+                echo -e "      Use ${GREEN}leap-server${NC} to manage it, or stop the server in the GUI."
+            fi
+        elif gpid=$(detect_gui_pid); then
+            echo -e "Note: ${YELLOW}Input Leap GUI is running (PID: $gpid).${NC}"
+            echo -e "      If it started the server, use the GUI or ${GREEN}leap-server${NC} to manage."
+        fi
         
         if load_config; then
             echo -e "Server: ${CYAN}$SERVER_HOST:$SERVER_PORT${NC} (configured)"
@@ -619,9 +840,9 @@ usage() {
     echo ""
     echo -e "${GREEN}Basic Commands:${NC}"
     echo -e "  ${CYAN}leap start${NC}      Start the Input Leap client"
-    echo -e "  ${CYAN}leap stop${NC}       Stop the Input Leap client"
+    echo -e "  ${CYAN}leap stop${NC}       Stop the Input Leap client (or server if detected)"
     echo -e "  ${CYAN}leap restart${NC}    Restart the Input Leap client"
-    echo -e "  ${CYAN}leap status${NC}     Show detailed client status"
+    echo -e "  ${CYAN}leap status${NC}     Show detailed client status (and server status if detected)"
     echo -e "  ${CYAN}leap config${NC}     Configure server connection"
     echo -e "  ${CYAN}leap test${NC}       Test server connection"
     echo -e "  ${CYAN}leap logs${NC}       View client logs"
