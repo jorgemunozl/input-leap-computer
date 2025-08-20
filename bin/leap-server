@@ -231,34 +231,55 @@ start_server() {
         return 0
     fi
     
-    if [[ ! -f "$CONFIG_FILE" ]]; then
-        log_error "Server not configured. Run: leap-server config"
-        return 1
+    # Use the working server config path
+    local server_config="$HOME/.config/InputLeap/Server.conf"
+    
+    if [[ ! -f "$server_config" ]]; then
+        log_warn "Server config not found at $server_config"
+        log_info "Creating basic server configuration..."
+        
+        # Create the directory if it doesn't exist
+        mkdir -p "$(dirname "$server_config")"
+        
+        # Create basic working config
+        cat > "$server_config" << 'EOF'
+section: screens
+    User:
+    archlinux:
+end
+
+section: links
+    User:
+        right = archlinux
+    archlinux:
+        left = User
+end
+EOF
+        log_success "Created basic server config at $server_config"
     fi
     
-    # Generate input-leap config file from our simplified config
-    local input_leap_config="$CONFIG_DIR/input-leap.conf"
-    generate_input_leap_config "$input_leap_config"
+    # Start server with the working command
+    log_info "Starting Input Leap server..."
     
-    # Start server
-    log_info "Starting Input Leap server daemon..."
-    input-leaps --config "$input_leap_config" --daemon \
-        >> "$LOG_FILE" 2>&1
+    # Start in background and capture PID
+    input-leaps --name User --config "$server_config" --debug INFO --disable-crypto \
+        >> "$LOG_FILE" 2>&1 &
     
-    # Wait for it to start and find the PID
-    sleep 3
+    local pid=$!
+    echo "$pid" > "$PID_FILE"
     
-    # Check if it's running by looking for the process
-    local pid
-    pid=$(pgrep -f "input-leaps.*input-leap.conf")
+    # Wait a moment for it to start
+    sleep 2
     
-    if [[ -n "$pid" ]]; then
-        echo "$pid" > "$PID_FILE"
+    # Check if it's still running
+    if ps -p "$pid" > /dev/null 2>&1; then
         log_success "Input Leap server started (PID: $pid)"
         
         # Show connection info
         echo ""
         echo -e "${GREEN}🎉 Server is now running!${NC}"
+        echo -e "   Status: ${CYAN}RUNNING${NC} in background"
+        echo -e "   Log file: ${CYAN}$LOG_FILE${NC}"
         
         if command -v notify-send &> /dev/null; then
             notify-send "Input Leap Server" "Server started successfully" -t 3000 2>/dev/null || true
@@ -267,9 +288,9 @@ start_server() {
         # Show client connection instructions
         echo ""
         echo -e "${CYAN}📱 Client Connection Instructions:${NC}"
-        echo -e "   On each client machine, run:"
-        echo -e "   ${YELLOW}leap config${NC}     # Configure server IP"
-        echo -e "   ${YELLOW}leap start${NC}      # Connect to server"
+        echo -e "   Server IP: ${YELLOW}169.254.135.230${NC}"
+        echo -e "   On client machine, run:"
+        echo -e "   ${YELLOW}input-leapc --name archlinux --debug INFO --disable-crypto 169.254.135.230${NC}"
         
         return 0
     else
